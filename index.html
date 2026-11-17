@@ -15,7 +15,7 @@
   #vista { position:relative; flex:1; min-width:0; }
   #view { position:absolute; inset:0; touch-action:none; }
   #carga { position:absolute; inset:0; display:grid; place-items:center; color:var(--suave); background:#e7eaee; z-index:5; text-align:center; padding:20px; }
-  #carga h2 { margin:0 0 8px; font-size:19px; color:var(--tinta); }
+  #carga h2 { margin:0 0 8px; font-size:22px; color:var(--tinta); letter-spacing:-.01em; } .bienv { max-width:420px; margin:0 auto 6px; color:var(--suave); } .recientes { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:10px; } .recientes .subt { width:100%; } .recientes a { text-decoration:none; }
   .pildora { border:1px solid var(--linea); background:var(--velo); padding:8px 13px; border-radius:999px; min-height:38px; white-space:nowrap; }
   .pildora.sel { background:var(--tinta); color:#fff; border-color:var(--tinta); }
   #barra { position:absolute; left:12px; top:max(12px, env(safe-area-inset-top)); display:flex; flex-wrap:wrap; gap:6px; max-width:calc(100% - 24px); }
@@ -148,6 +148,7 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
   #panel > * { flex-shrink:0; } #grupos { flex:1 1 auto; flex-shrink:1; }
   #sel, #pared { left:8px; right:8px; width:auto; bottom:calc(var(--hoja) + 10px); transition:bottom .28s cubic-bezier(.2,.8,.2,1); max-height:calc(100% - var(--hoja) - 80px); overflow:auto; }
   #toast { bottom:calc(var(--hoja) + 16px); }
+  #pie .tot span { font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:42vw; }
   .envivo { top:calc(max(12px, env(safe-area-inset-top)) + 46px); }
   #barra { left:8px; right:8px; max-width:none; }
   .seg button { padding:7px 11px; font-size:13.5px; }
@@ -235,7 +236,7 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
   <div id="vivoBox" hidden>
     <h3>En vivo en el ordenador y el móvil</h3>
     <p class="nota">Abre este enlace en el ordenador (o en otro móvil) y lo que cambies en uno se verá al instante en el otro. Quien tenga el enlace puede ver y editar el piso.</p>
-    <div class="fila"><input id="enlaceVivo" readonly style="flex:1;min-width:0"><button class="boton fuerte" id="copiarVivo">Copiar enlace</button></div>
+    <div class="fila"><input id="enlaceVivo" readonly style="flex:1;min-width:0"><button class="boton fuerte" id="copiarVivo">Copiar enlace</button><button class="boton" id="compartirVivo">Compartir</button></div>
   </div>
   <div id="webOnly">
     <h3>Piso</h3>
@@ -265,7 +266,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.17-27';
+const PLANNER_VERSION = '2026.11.17-28';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -1116,7 +1117,7 @@ function frameCamera(b, mode) {
   const asp = Math.max(.3, vr.width / Math.max(1, vr.height - tapa)), radio = Math.hypot(b.x1 - b.x0, b.z1 - b.z0, 1.2) / 2 + .2;
   const ajusta = fov => { const fv = fov * Math.PI / 180, fh = 2 * Math.atan(Math.tan(fv / 2) * asp); return radio / Math.sin(Math.min(fv, fh) / 2); };
   if (mode === 'plan') { camera.fov = 20; controls.enableRotate = false; camera.up.set(0, 0, -1); camera.position.set(b.cx, b.y + ajusta(20) * 1.02, b.cz + .001); }
-  else { camera.fov = 50; controls.enableRotate = true; camera.up.set(0, 1, 0); const d = ajusta(50) * .92, v = new THREE.Vector3(.62, .78, .8).normalize(); camera.position.set(b.cx + v.x * d, b.y + v.y * d, b.cz + v.z * d); }
+  else { camera.fov = 50; controls.enableRotate = true; camera.up.set(0, 1, 0); const d = ajusta(50), v = new THREE.Vector3(.62, .78, .8).normalize(); camera.position.set(b.cx + v.x * d, b.y + v.y * d, b.cz + v.z * d); }
   camera.updateProjectionMatrix(); camera.lookAt(controls.target); controls.update();
 }
 const dimCache = new Map();
@@ -1154,6 +1155,7 @@ function setRoom(i, reframe = true) {
   items.forEach(it => it.obj.visible = i < 0 || it.room === i);
   if (reframe) { if (viewMode === 'fp') { if (i < 0) ponerVista('3d'); else entrarPaseo(); } else frameCamera(i >= 0 ? roomBox(flat.rooms[i]) : flatBox(), viewMode); }
   ponerLuces(); renderPanel(); updateWalls(); pintarSuelos();
+  if (i >= 0 && !store.get('consejoVisto')) { store.set('consejoVisto', 1); setTimeout(() => toast(esMovil() ? 'Toca un mueble para cambiarlo · arrástralo para moverlo · dos dedos para girarlo' : 'Haz clic en un mueble para cambiarlo · arrástralo para moverlo · toca una pared para pintarla'), 600); }
 }
 function updateWalls() {
   if (!flat) return;
@@ -1677,6 +1679,7 @@ async function loadZip(buf, fallbackName) {
 $('zipInput').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { await loadZip(await f.arrayBuffer(), f.name); toast('Piso cargado'); } catch (err) { $('carga').style.display = 'none'; toast('No se pudo abrir: ' + err.message); } };
 $('demoBtn').onclick = async () => { try { const r = await fetch('demo.json'); await loadProject({ name: 'piso_ejemplo', piso: await r.json(), ply: null }); } catch { toast('No se pudo cargar el ejemplo'); } };
 
+$('compartirVivo') && ($('compartirVivo').onclick = async () => { const u = enlacePiso(); if (!u) return; try { await navigator.share({ title: 'Mi piso en vivo', url: u }); } catch { $('copiarVivo').click(); } });
 $('copiarVivo').onclick = async () => { const u = enlacePiso(); if (!u) return; try { await navigator.clipboard.writeText(u); toast('Enlace copiado'); } catch { $('enlaceVivo').select(); toast('Cópialo del cuadro'); } };
 // Web: abrir un piso en vivo con ?piso=… (o el último abierto)
 async function abrirPisoVivo(id) {
@@ -1936,7 +1939,12 @@ if (EN_APP) {
     } catch (e) { $('loadMsg').textContent = 'No se pudo abrir el piso: ' + e.message; }
   })();
 } else {
-  $('loadMsg').innerHTML = 'Abre el <b>.zip</b> de tu piso o prueba con el piso de ejemplo.<br><br><label class="boton fuerte archivo">Abrir piso (.zip)<input type="file" id="zipInput2" accept=".zip"></label> <button class="boton" id="demo2">Piso de ejemplo</button>';
+  const rec = (store.get('recientes') || []).filter(r => r && r.id);
+  $('loadMsg').innerHTML = `<p class="bienv">Escanea tu piso con la app del iPhone y ábrelo aquí para amueblarlo con muebles de IKEA. Lo que cambies en el móvil se ve al instante en el ordenador.</p>
+    ${rec.length ? `<div class="recientes"><div class="subt">Tus pisos en vivo</div>${rec.map(r => `<a class="boton fuerte" href="?piso=${encodeURIComponent(r.id)}">${esc(r.nombre)}</a>`).join('')}</div>` : ''}
+    <div class="fila" style="justify-content:center;margin-top:12px"><input id="enlaceAbrir" placeholder="Pega aquí el enlace del móvil" style="flex:1;min-width:0;max-width:300px;padding:9px 12px;border:1px solid var(--linea);border-radius:999px;font:inherit"><button class="boton fuerte" id="enlaceIr">Abrir</button></div>
+    <div class="fila" style="justify-content:center;margin-top:10px"><label class="boton archivo">Abrir piso (.zip)<input type="file" id="zipInput2" accept=".zip"></label> <button class="boton" id="demo2">Probar con un piso de ejemplo</button></div>`;
+  $('enlaceIr').onclick = () => { const v = $('enlaceAbrir').value.trim(), id = (/[?&]piso=([A-Za-z0-9]+)/.exec(v) || [, v])[1]; if (id && id.length >= 20) abrirPisoVivo(id); else toast('Pega el enlace que aparece en «Más» › «En vivo» en el móvil'); };
   $('zipInput2').onchange = e => $('zipInput').onchange(e); $('demo2').onclick = () => $('demoBtn').onclick();
   drive.init();
 }
