@@ -99,3 +99,66 @@ export function texturaCortina(patron, color, color2) {   // 1 m de tela por rep
   x.putImageData(im, 0, 0);
   return textura(c, 1, 1);
 }
+
+// ===== Suelos a elegir (por habitación) =====
+function lamas(base, semilla, anchoCm = 7, largoCm = 42) {
+  const N = 12, M = 3, [c, x] = lienzo(N * 40, M * 240), r = azar(semilla);
+  for (let i = 0; i < N; i++) {
+    const des = r() * 240;
+    for (let j = -1; j < M + 1; j++) {
+      const t = 0.86 + r() * 0.24; x.fillStyle = `rgb(${base[0] * t},${base[1] * t},${base[2] * t})`; x.fillRect(i * 40, j * 240 + des, 40, 240);
+      for (let k = 0; k < 7; k++) { x.strokeStyle = `rgba(${base[0] * .45},${base[1] * .4},${base[2] * .35},${0.05 + r() * 0.1})`; x.beginPath(); const px = i * 40 + r() * 40; x.moveTo(px, j * 240 + des); x.lineTo(px + (r() - 0.5) * 4, j * 240 + des + 240); x.stroke(); }
+      x.fillStyle = 'rgba(40,25,10,0.45)'; x.fillRect(i * 40, j * 240 + des, 40, 1.5);
+    }
+    x.fillStyle = 'rgba(40,25,10,0.4)'; x.fillRect(i * 40, 0, 1.2, M * 240);
+  }
+  return textura(c, 1 / (N * anchoCm / 100), 1 / (M * largoCm / 100));
+}
+function espiga(base, semilla) {          // parquet en espiga, piezas de 50 x 10 cm
+  const [c, x] = lienzo(512, 512), r = azar(semilla), L = 128, A = 25.6;
+  x.fillStyle = `rgb(${base})`; x.fillRect(0, 0, 512, 512);
+  for (let fila = -4; fila < 24; fila++) for (let col = -2; col < 6; col++) {
+    for (const lado of [0, 1]) {
+      const t = 0.85 + r() * 0.25; x.save(); x.translate(col * L * 0.707 * 2 + (lado ? L * 0.707 : 0), fila * A * 1.414 + (lado ? 0 : 0));
+      x.rotate(lado ? -Math.PI / 4 : Math.PI / 4); x.fillStyle = `rgb(${base[0] * t},${base[1] * t},${base[2] * t})`; x.fillRect(0, 0, L, A);
+      x.strokeStyle = 'rgba(40,25,10,.45)'; x.lineWidth = 1.2; x.strokeRect(0, 0, L, A); x.restore();
+    }
+  }
+  return textura(c, 1 / 1.0, 1 / 1.0);
+}
+function baldosas(colorA, colorB, ladoCm, junta, semilla, patron = null) {
+  const [c, x] = lienzo(512, 512), r = azar(semilla), n = 4, s = 512 / n;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const t = 0.94 + r() * 0.1; x.fillStyle = colorA; x.fillRect(i * s, j * s, s, s);
+    x.fillStyle = `rgba(0,0,0,${(1 - t) * 0.6})`; x.fillRect(i * s, j * s, s, s);
+    for (let k = 0; k < 220; k++) { x.fillStyle = `rgba(${r() < .5 ? '255,255,255' : '0,0,0'},${r() * 0.035})`; x.fillRect(i * s + r() * s, j * s + r() * s, 2 + r() * 6, 2 + r() * 6); }
+    if (patron) patron(x, i * s, j * s, s, colorB);
+  }
+  x.strokeStyle = junta; x.lineWidth = 2.5;
+  for (let i = 0; i <= n; i++) { x.beginPath(); x.moveTo(i * s, 0); x.lineTo(i * s, 512); x.stroke(); x.beginPath(); x.moveTo(0, i * s); x.lineTo(512, i * s); x.stroke(); }
+  return textura(c, 1 / (n * ladoCm / 100), 1 / (n * ladoCm / 100));
+}
+function ruido(base, semilla, grano, escalaM) {
+  const [c, x] = lienzo(512, 512), r = azar(semilla); x.fillStyle = base; x.fillRect(0, 0, 512, 512);
+  for (let k = 0; k < 9000; k++) { const v = r(); x.fillStyle = `rgba(${v < .5 ? '255,255,255' : '0,0,0'},${r() * grano})`; const z = 1 + r() * 3; x.fillRect(r() * 512, r() * 512, z, z); }
+  for (let k = 0; k < 40; k++) { const g = x.createRadialGradient(0, 0, 0, 0, 0, 60 + r() * 120); const v = r() < .5 ? '255,255,255' : '0,0,0'; g.addColorStop(0, `rgba(${v},${grano * .9})`); g.addColorStop(1, `rgba(${v},0)`); x.save(); x.translate(r() * 512, r() * 512); x.fillStyle = g; x.fillRect(-200, -200, 400, 400); x.restore(); }
+  return textura(c, 1 / escalaM, 1 / escalaM);
+}
+const hidraulico = (x, x0, y0, s, col) => {
+  x.fillStyle = col; const m = s / 2;
+  x.beginPath(); x.moveTo(x0 + m, y0 + s * .12); x.lineTo(x0 + s * .88, y0 + m); x.lineTo(x0 + m, y0 + s * .88); x.lineTo(x0 + s * .12, y0 + m); x.closePath(); x.fill();
+  x.fillStyle = 'rgba(255,255,255,.85)'; x.beginPath(); x.arc(x0 + m, y0 + m, s * .14, 0, Math.PI * 2); x.fill();
+  for (const [a, b] of [[0, 0], [s, 0], [0, s], [s, s]]) { x.fillStyle = col; x.beginPath(); x.arc(x0 + a, y0 + b, s * .16, 0, Math.PI * 2); x.fill(); }
+};
+export const SUELOS = [
+  { id: 'escaneo', nombre: 'El de tu casa', muestra: null },
+  { id: 'roble', nombre: 'Roble natural', muestra: '#b98a57', crea: () => ({ map: lamas([176, 128, 78], 3), roughness: .6 }) },
+  { id: 'robleclaro', nombre: 'Roble claro', muestra: '#d8bc94', crea: () => ({ map: lamas([214, 186, 146], 5), roughness: .6 }) },
+  { id: 'nogal', nombre: 'Nogal', muestra: '#6e4a31', crea: () => ({ map: lamas([118, 80, 54], 9), roughness: .55 }) },
+  { id: 'espiga', nombre: 'Espiga roble', muestra: '#c39a68', crea: () => ({ map: espiga([196, 152, 104], 4), roughness: .58 }) },
+  { id: 'porcelanico', nombre: 'Porcelánico gris 60×60', muestra: '#b9b6b0', crea: () => ({ map: baldosas('#bdbab4', null, 60, 'rgba(90,88,84,.5)', 6), roughness: .35 }) },
+  { id: 'marmol', nombre: 'Mármol blanco', muestra: '#ece9e4', crea: () => ({ map: baldosas('#efece7', null, 80, 'rgba(150,145,140,.35)', 8), roughness: .18 }) },
+  { id: 'microcemento', nombre: 'Microcemento', muestra: '#a9a49c', crea: () => ({ map: ruido('#aaa59d', 12, .06, 3), roughness: .5 }) },
+  { id: 'hidraulico', nombre: 'Baldosa hidráulica', muestra: '#4d6b78', crea: () => ({ map: baldosas('#eee8dc', '#4d6b78', 20, 'rgba(120,115,105,.45)', 14, hidraulico), roughness: .45 }) },
+  { id: 'moqueta', nombre: 'Moqueta beige', muestra: '#cdbfa8', crea: () => ({ map: ruido('#cdbfa8', 21, .09, 1), roughness: 1 }) },
+];

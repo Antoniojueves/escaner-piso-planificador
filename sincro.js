@@ -42,7 +42,7 @@ function aMapa(d) {
   return m;
 }
 function deMapa(m, principal) {
-  const d = { nuevos: [], existentes: {}, paredes: principal?.paredes || {}, propios: principal?.propios || [], actualizado: principal?.actualizado || null };
+  const d = { nuevos: [], existentes: {}, paredes: principal?.paredes || {}, suelos: principal?.suelos || {}, propuestas: principal?.propuestas || {}, propios: principal?.propios || [], actualizado: principal?.actualizado || null };
   for (const r of m.values()) {
     const { tipo, clave, por, ...resto } = r;
     if (tipo === 'n') d.nuevos.push(resto); else if (tipo === 'e') d.existentes[clave] = resto;
@@ -106,7 +106,7 @@ export async function conectar(id, { nombre, dispositivo, recibir, presencia, es
   const unsubs = [];
   unsubs.push(F.onSnapshot(raiz, s => {
     if (!s.exists()) return; principal = s.data();
-    const j = canon([principal.paredes || {}, principal.propios || []]);
+    const j = canon([principal.paredes || {}, principal.suelos || {}, principal.propuestas || {}, principal.propios || []]);
     if (s.metadata.hasPendingWrites || j === ultimoPrincipal) return; ultimoPrincipal = j; avisar();
   }, e => estado('error', e)));
   await new Promise(res => {
@@ -142,8 +142,8 @@ export async function conectar(id, { nombre, dispositivo, recibir, presencia, es
       const m = aMapa(d), b = F.writeBatch(db); let n = 0;
       for (const [k, r] of m) { const j = canon(r); if (ultimo.get(k) !== j) { ultimo.set(k, j); b.set(F.doc(col, k), { ...r, por: CLIENTE }); n++; } }
       for (const k of [...ultimo.keys()]) if (!m.has(k)) { ultimo.delete(k); b.delete(F.doc(col, k)); n++; }
-      const pj = canon([limpio(d.paredes || {}), limpio(d.propios || [])]);
-      if (pj !== ultimoPrincipal) { ultimoPrincipal = pj; b.set(raiz, { nombre, paredes: limpio(d.paredes || {}), propios: limpio(d.propios || []), actualizado: d.actualizado || new Date().toISOString() }, { merge: true }); n++; }
+      const pj = canon([limpio(d.paredes || {}), limpio(d.suelos || {}), limpio(d.propuestas || {}), limpio(d.propios || [])]);
+      if (pj !== ultimoPrincipal) { ultimoPrincipal = pj; b.set(raiz, { nombre, paredes: limpio(d.paredes || {}), suelos: limpio(d.suelos || {}), propuestas: limpio(d.propuestas || {}), propios: limpio(d.propios || []), actualizado: d.actualizado || new Date().toISOString() }, { mergeFields: ['nombre', 'paredes', 'suelos', 'propuestas', 'propios', 'actualizado'] }); n++; }
       else if (n) b.set(raiz, { actualizado: d.actualizado || new Date().toISOString() }, { merge: true });
       if (n) await b.commit();
     } catch (e) { estado('error', e); }

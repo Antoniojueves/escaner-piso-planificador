@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Amueblar mi piso</title>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#f6f3ed"><link rel="apple-touch-icon" href="icono-192.png"><meta name="apple-mobile-web-app-capable" content="yes">
 <style>
   /* Estilo tomado del configurador de tu hermano */
   :root { --tinta:#26221d; --suave:#6f675c; --papel:#f6f3ed; --linea:#e0d9cc; --acento:#9a3b2a; --velo:rgba(255,255,255,.92); }
@@ -30,8 +31,8 @@
   summary::-webkit-details-marker { display:none; }
   summary .t { font-weight:650; } summary .p { font-variant-numeric:tabular-nums; color:var(--suave); }
   summary .e { grid-column:1 / -1; color:var(--suave); font-size:12.5px; }
-  details[open] summary .t::after { content:" −"; color:var(--suave); }
-  details:not([open]) summary .t::after { content:" +"; color:var(--suave); }
+  details[open] summary .t::after { content:" ▾"; color:var(--suave); font-size:.8em; }
+  details:not([open]) summary .t::after { content:" ▸"; color:var(--suave); font-size:.8em; }
   details.foco > summary { background:#fff; border-radius:10px; }
   .cuerpo { padding:0 4px 12px; display:grid; gap:6px; }
   .nota { margin:0 2px 4px; color:var(--suave); font-size:12.5px; }
@@ -54,7 +55,7 @@
   .boton.fuerte { background:var(--tinta); color:#fff; border-color:var(--tinta); }
   .envivo { position:absolute; top:58px; right:12px; z-index:6; display:flex; align-items:center; gap:7px; padding:6px 11px; border-radius:999px; background:rgba(255,255,255,.92); box-shadow:0 2px 10px rgba(0,0,0,.08); font-size:12.5px; color:var(--tinta); }
   .envivo i { width:8px; height:8px; border-radius:50%; background:#9aa0a6; }
-  .envivo.envivo i { background:#2fa36b; box-shadow:0 0 0 3px rgba(47,163,107,.18); } .envivo.error i { background:#c0392b; } .envivo.subiendo i, .envivo.conectando i { background:#e0a100; }
+  .envivo[hidden] { display:none; } .envivo.est-envivo i { background:#2fa36b; box-shadow:0 0 0 3px rgba(47,163,107,.18); } .envivo.est-error i { background:#c0392b; } .envivo.est-subiendo i, .envivo.est-conectando i { background:#e0a100; }
   .pildora.fuerte { background:var(--acento); color:#fff; border-color:var(--acento); }
   #sel { position:absolute; left:12px; bottom:max(12px, env(safe-area-inset-bottom)); background:var(--velo); border-radius:16px; box-shadow:0 2px 14px rgba(0,0,0,.12); padding:10px 14px 12px; display:none; max-width:calc(100% - 24px); }
   #sel .g { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--acento); font-weight:700; }
@@ -68,7 +69,10 @@
   label.campo { display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--suave); }
   label.campo input, label.campo select { font:inherit; color:var(--tinta); padding:7px 8px; border:1px solid var(--linea); border-radius:8px; background:#fff; width:100%; }
   #toast { position:absolute; left:50%; bottom:120px; transform:translateX(-50%); background:rgba(38,34,29,.85); color:#fff; padding:7px 14px; border-radius:999px; font-size:13.5px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:6; max-width:90%; text-align:center; }
-  #hoja { position:fixed; inset:0; background:rgba(20,18,15,.45); display:none; align-items:flex-end; justify-content:center; z-index:10; }
+  .modal { position:fixed; inset:0; background:rgba(20,18,15,.45); display:none; align-items:flex-end; justify-content:center; z-index:10; } .modal.abierta { display:flex; } .modal > div { background:var(--papel); width:min(680px, 100%); max-height:88%; overflow:auto; border-radius:18px 18px 0 0; padding:16px 18px calc(18px + env(safe-area-inset-bottom)); } .modal h2 { margin:0; font-size:18px; }
+.fases { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:10px 0; } .fases div { background:#fff; border:1px solid var(--linea); border-radius:12px; padding:8px 10px; } .fases b { display:block; font-size:17px; font-variant-numeric:tabular-nums; } .fases span { font-size:12px; color:var(--suave); }
+.lc h3 { margin:14px 0 6px; font-size:13px; letter-spacing:.05em; text-transform:uppercase; color:var(--suave); display:flex; justify-content:space-between; } .art { display:grid; grid-template-columns:48px 1fr auto; gap:2px 10px; align-items:center; background:#fff; border:1px solid var(--linea); border-radius:12px; padding:8px; margin-bottom:6px; } .art img { width:48px; height:48px; object-fit:contain; grid-row:span 2; } .art a { color:inherit; text-decoration:none; font-weight:600; } .art small { color:var(--suave); } .art .pr { text-align:right; font-variant-numeric:tabular-nums; } .art .fase { grid-column:2 / -1; display:flex; gap:4px; } .art .fase button { border:1px solid var(--linea); background:#fff; border-radius:999px; padding:2px 9px; font-size:11.5px; } .art .fase button.sel { background:var(--tinta); color:#fff; border-color:var(--tinta); }
+#hoja { position:fixed; inset:0; background:rgba(20,18,15,.45); display:none; align-items:flex-end; justify-content:center; z-index:10; }
   #hoja.abierta { display:flex; }
   #hoja > div { background:var(--papel); width:min(680px, 100%); max-height:86%; overflow:auto; border-radius:18px 18px 0 0; padding:16px 18px calc(18px + env(safe-area-inset-bottom)); }
   #hoja h2 { margin:0 0 4px; font-size:18px; } #hoja h3 { margin:16px 0 6px; font-size:13px; letter-spacing:.05em; text-transform:uppercase; color:var(--suave); }
@@ -90,6 +94,65 @@
 #pared .fila { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:8px; font-size:13px }
 #paredCols { display:grid; grid-template-columns:repeat(8, 1fr); gap:6px; margin-top:6px }
 #paredCols button { aspect-ratio:1; border-radius:8px; border:1px solid #0002; cursor:pointer; padding:0 }
+/* ===== Rediseño 2026-11 ===== */
+:root { --sombra:0 4px 18px rgba(30,25,18,.12); --radio:14px; --hoja:150px; }
+body { -webkit-font-smoothing:antialiased; }
+#barra { align-items:center; gap:8px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; padding:2px; }
+#barra::-webkit-scrollbar { display:none; }
+.seg { display:inline-flex; background:var(--velo); border-radius:999px; padding:3px; box-shadow:var(--sombra); flex:none; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+.seg button { border:0; background:none; padding:7px 13px; border-radius:999px; white-space:nowrap; color:var(--suave); font-weight:550; }
+.seg button.sel { background:var(--tinta); color:#fff; } .seg button:disabled { opacity:.35; } #undoBtn, #redoBtn { font-size:17px; padding:5px 11px; }
+.avisos { display:grid; gap:6px; margin:6px 0 4px; } .aviso { background:#fff4ec; border:1px solid #f1d2bd; color:#7a3b1d; border-radius:10px; padding:7px 10px; font-size:12.5px; display:flex; gap:8px; align-items:flex-start; cursor:pointer; } .aviso b { font-weight:650; }
+.estilos { display:flex; gap:6px; flex-wrap:wrap; } .estilos button { border:1px solid var(--linea); background:#fff; border-radius:999px; padding:6px 11px; } .estilos button.sel { background:var(--tinta); color:#fff; border-color:var(--tinta); }
+details.amueblar > summary .t { color:var(--acento); }
+.propuestas { display:flex; gap:6px; align-items:center; margin:2px 0 8px; flex-wrap:wrap; } .propuestas button { border:1px solid var(--linea); background:#fff; border-radius:10px; padding:5px 10px; display:flex; flex-direction:column; align-items:flex-start; line-height:1.15; min-width:64px; } .propuestas button small { color:var(--suave); font-size:11px; font-variant-numeric:tabular-nums; } .propuestas button.sel { border-color:var(--acento); box-shadow:inset 0 0 0 1px var(--acento); } .propuestas .mas { min-width:0; align-items:center; justify-content:center; color:var(--suave); }
+.cota { position:absolute; z-index:3; transform:translate(-50%,-50%); background:#fff; color:#b23a22; font-size:11.5px; font-weight:650; padding:1px 6px; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,.15); pointer-events:none; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.pildora { box-shadow:var(--sombra); border-color:transparent; }
+.pildora.icono { width:38px; padding:0; font-size:18px; line-height:1; }
+.flotante { position:absolute; top:calc(max(12px, env(safe-area-inset-top)) + 46px); left:12px; z-index:7; background:#fff; border-radius:var(--radio); box-shadow:0 10px 30px rgba(0,0,0,.16); padding:6px; display:grid; min-width:240px; }
+.flotante[hidden] { display:none; }
+.opt { border:0; background:none; text-align:left; padding:10px 12px; border-radius:10px; display:flex; gap:10px; align-items:center; }
+.opt span { width:20px; text-align:center; }
+#suelos { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:6px; padding:0 6px 6px; } .suelo { border:2px solid transparent; background:none; padding:2px; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:3px; font-size:10px; min-width:0; overflow-wrap:anywhere; text-align:center; color:var(--suave); line-height:1.1; } .suelo i { width:100%; height:44px; border-radius:7px; border:1px solid rgba(0,0,0,.12); } .suelo.sel { border-color:var(--acento); color:var(--tinta); }
+#opciones { max-height:calc(100% - 140px); overflow:auto; width:min(330px, calc(100% - 24px)); } .opt:hover { background:var(--papel); } .opt.sel { background:var(--papel); font-weight:650; } .opt.sel::after { content:"✓"; margin-left:auto; color:var(--acento); }
+#ayuda { left:auto; right:14px; max-width:46%; text-align:right; }
+#sel, #pared { border-radius:18px; box-shadow:0 8px 30px rgba(30,25,18,.18); background:rgba(255,255,255,.96); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); padding:12px; width:min(420px, calc(100% - 24px)); }
+.selCab { display:flex; gap:10px; align-items:flex-start; }
+#selFoto { width:64px; height:64px; object-fit:contain; background:#fff; border-radius:10px; border:1px solid var(--linea); flex:none; cursor:pointer; }
+#selFoto[src=""], #selFoto:not([src]) { display:none; }
+.selTxt { flex:1; min-width:0; } #sel .n { font-size:16.5px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; } #sel .d { margin:2px 0 0; }
+.x { border:0; background:var(--papel); width:30px; height:30px; border-radius:50%; font-size:18px; line-height:1; flex:none; color:var(--suave); }
+#sel .warn { margin:8px 0 0; }
+.acciones { display:grid; grid-template-columns:repeat(6, 1fr); gap:6px; margin-top:10px; }
+.acciones button { border:1px solid var(--linea); background:#fff; border-radius:12px; padding:6px 2px 5px; display:flex; flex-direction:column; align-items:center; gap:1px; font-size:17px; line-height:1.1; }
+.acciones button small { font-size:10.5px; color:var(--suave); }
+.acciones button.peligro { color:var(--acento); } .acciones button.sel { background:var(--papel); }
+#selMas { margin-top:10px; display:grid; gap:8px; } #selMas[hidden] { display:none; } #exEdit { margin:0; }
+#panel header { align-items:center; } #h1 { font-size:18px; letter-spacing:-.01em; }
+#pie { gap:6px; } #pie .tot b { font-size:21px; letter-spacing:-.01em; }
+#pie button { font-weight:550; }
+.op { transition:border-color .15s, box-shadow .15s; } .op:active { transform:scale(.99); }
+details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
+#asa { display:none; }
+#carga { background:linear-gradient(180deg,#eef0f3,#e3e6ea); }
+@media (max-width: 760px) {
+  #app { display:block; }
+  #vista { position:fixed; inset:0; height:auto; }
+  #panel { position:fixed; left:0; right:0; bottom:0; width:auto; height:var(--hoja); border:0; border-radius:20px 20px 0 0; box-shadow:0 -8px 30px rgba(30,25,18,.16); z-index:4; transition:height .28s cubic-bezier(.2,.8,.2,1); }
+  #panel.arrastrando { transition:none; }
+  #asa { display:block; height:22px; flex:none; cursor:grab; touch-action:none; display:grid; place-items:center; }
+  #asa i { width:40px; height:5px; border-radius:3px; background:#cfc8bb; }
+  #panel header { padding:0 16px 4px; touch-action:none; order:1; } #panel header p { display:none; }
+  #pie { order:2; border-top:0; border-bottom:1px solid var(--linea); background:transparent; padding:2px 14px 10px; }
+  #grupos { order:3; }
+  #panel > * { flex-shrink:0; } #grupos { flex:1 1 auto; flex-shrink:1; }
+  #sel, #pared { left:8px; right:8px; width:auto; bottom:calc(var(--hoja) + 10px); transition:bottom .28s cubic-bezier(.2,.8,.2,1); max-height:calc(100% - var(--hoja) - 80px); overflow:auto; }
+  #toast { bottom:calc(var(--hoja) + 16px); }
+  .envivo { top:calc(max(12px, env(safe-area-inset-top)) + 46px); }
+  #barra { left:8px; right:8px; max-width:none; }
+  .seg button { padding:7px 11px; font-size:13.5px; }
+}
+
 #paredCols button.sel { outline:2px solid #111; outline-offset:2px }
 </style>
 <script>
@@ -118,12 +181,21 @@
 <div id="app">
   <div id="vista">
     <div id="envivo" class="envivo" hidden></div>
+    <div id="cotas"></div>
     <div id="view"></div>
     <div id="barra">
-      <button class="pildora sel" data-vista="3d">Maqueta</button><button class="pildora" data-vista="plan">Planta</button><button class="pildora fuerte" id="arBtn" style="display:none">Ver en AR</button>
-      <span class="sep"></span><span id="salas" style="display:contents"></span><span class="sep"></span>
-      <button class="pildora" data-c="noche">Noche</button><button class="pildora" data-c="girar">Girar sola</button>
-      <button class="pildora" data-c="paredes">Todas las paredes</button><button class="pildora" data-c="nube">Nube de puntos</button>
+      <div class="seg"><button class="sel" data-vista="3d">3D</button><button data-vista="plan">Planta</button><button data-vista="fp">Paseo</button></div>
+      <div class="seg salas" id="salas"></div>
+      <div class="seg"><button id="undoBtn" title="Deshacer (Ctrl+Z)" disabled>↶</button><button id="redoBtn" title="Rehacer (Ctrl+Mayús+Z)" disabled>↷</button></div><button class="pildora icono" id="optBtn" aria-label="Opciones de vista">⋯</button>
+      <button class="pildora fuerte" id="arBtn" style="display:none">Ver en AR</button>
+    </div>
+    <div id="opciones" class="flotante" hidden>
+      <button class="opt" data-c="noche"><span>🌙</span>Noche (lámparas encendidas)</button>
+      <button class="opt" data-c="girar"><span>↻</span>Girar sola</button>
+      <button class="opt" data-c="paredes"><span>▥</span>Ver todas las paredes</button>
+      <button class="opt" data-c="nube"><span>⁘</span>Nube de puntos del escaneo</button>
+      <button class="opt" id="fotoBtn"><span>📷</span>Foto bonita de la vista</button>
+      <div id="sueloBox" hidden><div class="subt" style="margin:10px 8px 6px">Suelo de esta habitación</div><div id="suelos"></div></div>
     </div>
     <div id="ayuda">Toca una habitación para entrar · arrastra los muebles para moverlos · arrastra el fondo para girar, pellizca para acercar</div>
     <div id="pared"><div class="g">Pared</div><div class="n" id="paredNom"></div>
@@ -131,21 +203,33 @@
       <div class="fila"><label>Otro color <input type="color" id="paredOtro"></label><button class="boton" id="paredTodas">Toda la habitación</button><button class="boton" id="paredQuitar">Color original</button><button class="boton" id="paredCerrar">Cerrar</button></div>
     </div>
     <div id="sel">
-      <img id="selFoto" alt="" style="display:none;float:right;width:84px;height:84px;object-fit:contain;background:#fff;border-radius:8px;margin:0 0 6px 8px;cursor:pointer"><div class="g" id="selG"></div><div class="n" id="selName"></div><div class="d" id="selInfo"></div>
+      <div class="selCab"><img id="selFoto" alt=""><div class="selTxt"><div class="g" id="selG"></div><div class="n" id="selName"></div><div class="d" id="selInfo"></div></div><button class="x" id="selX" aria-label="Cerrar">×</button></div>
       <div class="warn" id="selWarn">Se sale de la habitación</div>
-      <div id="exEdit"><div class="g3"><label class="campo">Ancho cm<input id="exW" type="number"></label><label class="campo">Fondo cm<input id="exD" type="number"></label><label class="campo">Alto cm<input id="exH" type="number"></label></div></div>
-      <div class="fila" style="margin-bottom:8px"><span class="nota" style="margin:0">Altura sobre el suelo</span><button class="boton" id="elevDown">−</button><input id="elev" type="number" step="1"><span class="nota" style="margin:0">cm</span><button class="boton" id="elevUp">+</button></div>
-      <div class="fila"><button class="boton" id="rotL">⟲ 90°</button><button class="boton" id="rotR">⟳ 90°</button><button class="boton" id="rot15">⟳ 15°</button><button class="boton" id="dup">Duplicar</button><button class="boton" id="del">Quitar</button></div>
+      <div class="acciones"><button id="rotL" title="Girar a la izquierda">⟲<small>90°</small></button><button id="rotR" title="Girar a la derecha">⟳<small>90°</small></button><button id="cambiarBtn">⇄<small>Cambiar</small></button><button id="dup">⧉<small>Duplicar</small></button><button id="del" class="peligro">✕<small>Quitar</small></button><button id="selMasBtn">⋯<small>Medidas</small></button></div>
+      <div id="selMas" hidden>
+        <div id="exEdit"><div class="g2" style="margin-bottom:6px"><label class="campo">Nombre<input id="exN"></label><label class="campo">Es un/a<select id="exC"></select></label></div><div class="g3"><label class="campo">Ancho cm<input id="exW" type="number"></label><label class="campo">Fondo cm<input id="exD" type="number"></label><label class="campo">Alto cm<input id="exH" type="number"></label></div></div>
+        <div class="fila"><span class="nota" style="margin:0">Altura sobre el suelo</span><button class="boton" id="elevDown">−</button><input id="elev" type="number" step="1"><span class="nota" style="margin:0">cm</span><button class="boton" id="elevUp">+</button></div>
+        <div class="fila"><span class="nota" style="margin:0">Giro fino</span><button class="boton" id="rot15">⟳ 15°</button></div>
+      </div>
     </div>
     <div id="toast"></div>
     <div id="carga"><div><h2>Amueblar mi piso</h2><div id="loadMsg">Cargando…</div></div></div>
   </div>
   <aside id="panel">
+    <div id="asa" aria-label="Arrastra para ampliar"><i></i></div>
     <header><h1 id="h1">Amueblar mi piso</h1><button class="boton" id="closeBtn" hidden>Cerrar</button><p id="hp">Elige una habitación.</p></header>
     <div id="grupos"></div>
-    <div id="pie"><div class="tot"><b id="total">0 €</b><span id="totSub">total de lo nuevo</span></div><button id="b-copiar">Copiar presupuesto</button><button id="b-mas">Más</button></div>
+    <div id="pie"><div class="tot"><b id="total">0 €</b><span id="totSub">total de lo nuevo</span></div><button id="b-copiar">🛒 Lista de compra</button><button id="b-mas">Más</button></div>
   </aside>
 </div>
+<div id="compra" class="modal"><div>
+  <div class="fila" style="justify-content:space-between"><h2>Lista de la compra</h2><button class="boton" id="compraCerrar">Cerrar</button></div>
+  <p class="nota">Todo lo nuevo del piso, por habitaciones. Marca qué compras ahora y qué más adelante: el total se reparte por fases. Toca un artículo para abrirlo en IKEA.</p>
+  <div id="compraFases" class="fases"></div>
+  <div id="compraLista"></div>
+  <div class="fila" style="margin-top:12px"><button class="boton fuerte" id="compraCopiar">Copiar lista con referencias</button><button class="boton" id="compraCsv">Copiar para Excel</button></div>
+  <p class="nota" style="margin-top:8px">Para comprar: abre la app o la web de IKEA y busca cada referencia (por ejemplo 904.499.05), o pégala en el buscador de la tienda.</p>
+</div></div>
 <div id="hoja"><div>
   <div class="fila" style="justify-content:space-between"><h2>Más opciones</h2><button class="boton" id="hojaCerrar">Cerrar</button></div>
   <div id="vivoBox" hidden>
@@ -178,10 +262,10 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { texturaVeta, texturaParquet } from './texturas.js';
+import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.17-26';
+const PLANNER_VERSION = '2026.11.17-27';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -508,7 +592,7 @@ async function preloadModels() {
   }));
 }
 const modelsReady = preloadModels();
-function resize() { const r = view.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); renderer.domElement.style.width = r.width + 'px'; renderer.domElement.style.height = r.height + 'px'; camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix(); }
+function resize() { const r = view.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); renderer.domElement.style.width = r.width + 'px'; renderer.domElement.style.height = r.height + 'px'; camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix(); if (typeof ajustarVista === 'function') try { ajustarVista(); } catch {} }
 new ResizeObserver(resize).observe(view);
 
 // ================= Estado =================
@@ -605,10 +689,28 @@ function objectColors(f) {
 // ================= Construcción del piso =================
 const wallMat = new THREE.MeshStandardMaterial({ color: '#fbfaf7', roughness: .95 });
 const doorMat = new THREE.MeshStandardMaterial({ color: '#c9a77c', roughness: .7, map: VETA });
-const glassMat = new THREE.MeshStandardMaterial({ color: '#a8cbe4', transparent: true, opacity: .3, roughness: .05, metalness: .1 });
+const glassMat = new THREE.MeshStandardMaterial({ color: '#cfe3f2', emissive: '#eaf4fc', emissiveIntensity: .55, transparent: true, opacity: .55, roughness: .05, metalness: .1 });
+const rodapieMat = new THREE.MeshStandardMaterial({ color: '#f7f6f2', roughness: .6 }), marcoMat = new THREE.MeshStandardMaterial({ color: '#f4f2ed', roughness: .55 });
 function boxAt(w, h, d, mat, f, lx, ly, lz) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(Math.max(.001, w), Math.max(.001, h), Math.max(.001, d)), mat);
   m.position.copy(f.p).addScaledVector(f.ex, lx).addScaledVector(f.ey, ly).addScaledVector(f.ez, lz); m.quaternion.copy(f.q); m.castShadow = m.receiveShadow = true; return m;
+}
+// Rodapiés y marcos de puertas y ventanas (por el lado de dentro de la habitación)
+function acabadosPared(w, f, holes, ops, g, h) {
+  const pts = h.paredes.map(x => frame(x).p), cx = pts.reduce((a, p) => a + p.x, 0) / pts.length, cz = pts.reduce((a, p) => a + p.z, 0) / pts.length;
+  const lado = (new THREE.Vector3(cx, f.p.y, cz).sub(f.p).dot(f.ez)) >= 0 ? 1 : -1, W = f.w, H = f.h, suelo = -H / 2;
+  const huecosSuelo = holes.filter(o => o.y0 < suelo + .15).map(o => [Math.max(-W / 2, o.x0), Math.min(W / 2, o.x1)]).sort((a, b) => a[0] - b[0]);
+  let x = -W / 2; const tramos = [];
+  for (const [a, b] of huecosSuelo) { if (a > x + .02) tramos.push([x, a]); x = Math.max(x, b); } if (W / 2 > x + .02) tramos.push([x, W / 2]);
+  for (const [a, b] of tramos) { const m = boxAt(b - a, .07, .014, rodapieMat, f, (a + b) / 2, suelo + .035, lado * (.05 + .007)); m.castShadow = false; g.add(m); }
+  for (const o of holes) {
+    const x0 = Math.max(-W / 2, o.x0), x1 = Math.min(W / 2, o.x1), y0 = Math.max(suelo, o.y0), y1 = Math.min(H / 2, o.y1), t = .05, z = lado * (.05 + .009);
+    if (x1 - x0 < .2 || y1 - y0 < .2) continue;
+    const add = m => { m.castShadow = false; g.add(m); ops.push(m); };
+    add(boxAt(x1 - x0 + 2 * t, t, .018, marcoMat, f, (x0 + x1) / 2, y1 + t / 2, z));
+    add(boxAt(t, y1 - y0, .018, marcoMat, f, x0 - t / 2, (y0 + y1) / 2, z)); add(boxAt(t, y1 - y0, .018, marcoMat, f, x1 + t / 2, (y0 + y1) / 2, z));
+    if (y0 > suelo + .15) { add(boxAt(x1 - x0 + .1, .025, .06, marcoMat, f, (x0 + x1) / 2, y0 - .0125, lado * (.05 + .03))); add(boxAt(x1 - x0 + 2 * t, t, .018, marcoMat, f, (x0 + x1) / 2, y0 - t / 2 - .025, z)); }
+  }
 }
 function buildWall(w, holes, group) {
   const f = frame(w), W = f.w, H = f.h;
@@ -645,6 +747,7 @@ function buildFlat(data) {
         }
       }
       const pieces = buildWall(w, holes, g), key = ri + '-' + walls.length; pieces.forEach(m => { m.userData.pared = key; m.userData.room = ri; });
+      acabadosPared(w, f, holes, ops, g, h);
       walls.push({ f, pieces, openings: ops, key });
     });
     const poly = floorPolygon(h.paredes) || [[-1, -1], [1, -1], [1, 1], [-1, 1]];
@@ -667,7 +770,9 @@ function buildFlat(data) {
         color: pl.verde, color2: null, backSign: -1, kind: 'existing', estilo: { f: 'planta', t: pl.t, verde: pl.verde, maceta: '#d9d2c5' }, techo: pl.t === 'colgante' || undefined };
       products.set(p.id, p); objects.push({ key, pid: p.id, x: pl.x, z: pl.z, rot: 0, y: pl.y, backSign: -1 });
     });
-    rooms.push({ i: ri, name: h.nombre || ('Habitación ' + (ri + 1)), floorY, height, poly, walls, floor, group: g, objects, box: { x0, x1, z0, z1 }, area: polyArea(poly) });
+    const puertas = openings.filter(x => x.k !== 'window').map(({ o }) => { const fo = frame(o); return { x: fo.p.x, z: fo.p.z, tx: fo.ex.x, tz: fo.ex.z, w: fo.w }; });
+    const ventanas = openings.filter(x => x.k === 'window').map(({ o }) => { const fo = frame(o); return { x: fo.p.x, z: fo.p.z, w: fo.w, y0: fo.p.y - fo.h / 2 }; });
+    rooms.push({ i: ri, name: h.nombre || ('Habitación ' + (ri + 1)), floorY, height, poly, walls, floor, floorMat0: floorMat, puertas, ventanas, group: g, objects, box: { x0, x1, z0, z1 }, area: polyArea(poly) });
   });
   flat.rooms = rooms;
   const b = flatBox(); sun.position.set(b.cx + 6, b.y + 12, b.cz + 4); sun.target.position.set(b.cx, b.y, b.cz);
@@ -802,14 +907,38 @@ function addItem(pid, room, x, z, rot = 0, opts = {}) {
   const r = flat.rooms[room], acabado = opts.acabado || p.acabados?.[0]?.id || null, obj = modelFor(p, acabado);
   let elev = Math.max(0, opts.elev ?? (opts.y != null ? opts.y - r.floorY : (p.elev || 0) / 100));
   if (p.techo && opts.elev == null) elev = Math.max(0, r.height - obj.userData.size.H);
-  const it = { uid: opts.uid || CLI + uidSeq++, pid, acabado, room, x, z, rot, obj, existing: opts.existing || null, replaces: opts.replaces || null, elev, libre: !!opts.libre };
+  const it = { uid: opts.uid || CLI + uidSeq++, pid, acabado, room, x, z, rot, obj, existing: opts.existing || null, replaces: opts.replaces || null, elev, libre: !!opts.libre, fase: opts.fase || undefined };
   if (typeof it.uid === 'number') uidSeq = Math.max(uidSeq, it.uid + 1);
+  sombraContacto(obj, p);
   obj.userData.item = it; furnGroup.add(obj); items.push(it); if (opts.elev == null) apoyar(it, !opts.existing); place(it);
   return it;
 }
+const SOMBRA = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 8, 64, 64, 64);
+  g.addColorStop(0, 'rgba(0,0,0,.55)'); g.addColorStop(.55, 'rgba(0,0,0,.28)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
+const sombraMat = new THREE.MeshBasicMaterial({ map: SOMBRA, transparent: true, depthWrite: false, opacity: .55, polygonOffset: true, polygonOffsetFactor: -2 });
+function sombraContacto(obj, p) {
+  const s = obj.userData.size; if (!s || p.techo || /alfombra|cuadro|espejo/.test(p.fam || '') || p.kind === 'rug' || s.H < .05) return;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(s.W * 1.25 + .1, s.D * 1.25 + .1), sombraMat); m.rotation.x = -Math.PI / 2; m.position.y = .004; m.renderOrder = -1; m.userData.sombra = true; m.raycast = () => {}; obj.add(m);
+}
+// Suelo por habitación
+const sueloMats = new Map();
+function ponerSuelo(ri, id) {
+  const r = flat?.rooms[ri]; if (!r) return; const S = SUELOS.find(x => x.id === id);
+  let m = r.floorMat0; if (S?.crea) { if (!sueloMats.has(id)) { const c = S.crea(); sueloMats.set(id, new THREE.MeshStandardMaterial({ map: c.map, roughness: c.roughness })); } m = sueloMats.get(id); }
+  r.floor.material = m; r.floor.userData.baseMat = m;
+  if (design) { design.suelos = design.suelos || {}; if (S?.crea) design.suelos[ri] = id; else delete design.suelos[ri]; }
+  if (currentRoom >= 0 && currentRoom !== ri) setRoom(currentRoom, false);
+  pintarSuelos();
+}
+function pintarSuelos() {
+  const el = $('suelos'); if (!el) return; const cur = currentRoom >= 0 ? (design?.suelos?.[currentRoom] || 'escaneo') : null;
+  $('sueloBox').hidden = currentRoom < 0;
+  el.innerHTML = SUELOS.map(S => `<button class="suelo${S.id === cur ? ' sel' : ''}" data-s="${S.id}" title="${S.nombre}"><i style="background:${S.muestra || 'linear-gradient(135deg,#ddd,#999)'}"></i><span>${S.nombre}</span></button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => { ponerSuelo(currentRoom, b.dataset.s); changed(); });
+}
 function place(it) { it.y = flat.rooms[it.room].floorY + it.elev; it.obj.position.set(it.x, it.y, it.z); it.obj.rotation.y = it.rot; }
 function removeItem(it) { furnGroup.remove(it.obj); items = items.filter(i => i !== it); if (selected === it) select(null); }
-function rebuild(it) { const vis = it.obj.visible; furnGroup.remove(it.obj); it.obj = modelFor(products.get(it.pid), it.acabado); it.obj.userData.item = it; it.obj.visible = vis; furnGroup.add(it.obj); place(it); }
+function rebuild(it) { const vis = it.obj.visible; furnGroup.remove(it.obj); it.obj = modelFor(products.get(it.pid), it.acabado); sombraContacto(it.obj, products.get(it.pid)); it.obj.userData.item = it; it.obj.visible = vis; furnGroup.add(it.obj); place(it); }
 
 // ---- colisiones con paredes y suelo ----
 const WALL_MARGIN = .05;
@@ -817,7 +946,41 @@ function penalty(it, x = it.x, z = it.z, rot = it.rot) {
   const r = flat.rooms[it.room], { W, D } = it.obj.userData.size, c = Math.cos(rot), s = Math.sin(rot), hw = W / 2 + WALL_MARGIN, hd = D / 2 + WALL_MARGIN; let pen = 0;
   for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1], [0, -1], [0, 1], [-1, 0], [1, 0]]) { const lx = a * hw, lz = b * hd; if (!pointInPoly(x + lx * c + lz * s, z - lx * s + lz * c, r.poly)) pen++; }
   for (const [px, pz] of r.poly) { const dx = px - x, dz = pz - z, lx = dx * c - dz * s, lz = dx * s + dz * c; if (Math.abs(lx) < hw - .01 && Math.abs(lz) < hd - .01) pen++; }
+  if (esSolido(it)) for (const o of items) if (o !== it && o.room === it.room && o.obj.visible !== false && esSolido(o) && choca(it, x, z, rot, o)) pen += 2;
   return pen;
+}
+// Imanes: pegar a la pared cercana y alinear con otros muebles (con guía)
+const guia = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xd2452f, transparent: true, opacity: .9 })); guia.visible = false; guia.renderOrder = 5; scene.add(guia);
+function iman(it, x, z) {
+  const r = flat.rooms[it.room], { W, D } = it.obj.userData.size, c = Math.cos(it.rot), s = Math.sin(it.rot), segs = []; let gx = null, gz = null;
+  for (let i = 0; i < r.poly.length; i++) {
+    const [ax, az] = r.poly[i], [bx, bz] = r.poly[(i + 1) % r.poly.length], L = Math.hypot(bx - ax, bz - az); if (L < .2) continue;
+    const tx = (bx - ax) / L, tz = (bz - az) / L; let nx = -tz, nz = tx; const mx = (r.box.x0 + r.box.x1) / 2, mz = (r.box.z0 + r.box.z1) / 2; if ((mx - ax) * nx + (mz - az) * nz < 0) { nx = -nx; nz = -nz; }
+    const e = Math.abs(nx * c + nz * -s) * W / 2 + Math.abs(nx * s + nz * c) * D / 2 + WALL_MARGIN + .002, d = (x - ax) * nx + (z - az) * nz, t = (x - ax) * tx + (z - az) * tz;
+    if (t < -.2 || t > L + .2) continue;
+    if (Math.abs(d - e) < .09) { x += (e - d) * nx; z += (e - d) * nz; }
+  }
+  if (!esSobre(products.get(it.pid))) for (const o of items) { if (o === it || o.room !== it.room || o.obj.visible === false) continue;
+    if (gx == null && Math.abs(o.x - x) < .03) { x = o.x; gx = o; } if (gz == null && Math.abs(o.z - z) < .03) { z = o.z; gz = o; } }
+  const y = r.floorY + .02, pts = [];
+  if (gx) pts.push(x, y, Math.min(z, gx.z) - .3, x, y, Math.max(z, gx.z) + .3); if (gz) pts.push(Math.min(x, gz.x) - .3, y, z, Math.max(x, gz.x) + .3, y, z);
+  guia.geometry.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); guia.visible = pts.length > 0;
+  return [Math.round(x * 1000) / 1000, Math.round(z * 1000) / 1000];
+}
+// Colisiones entre muebles (planta de cada uno como rectángulo girado, con 1 cm de tolerancia)
+const esSolido = it => { const p = products.get(it.pid); return !!p && !esSobre(p) && !p.techo && !/alfombra|cuadro|espejo/.test(p.fam || '') && p.kind !== 'rug' && it.obj.userData.size.H > .05; };
+function rect(it, x = it.x, z = it.z, rot = it.rot, m = 0) { const { W, D } = it.obj.userData.size, c = Math.cos(rot), s = Math.sin(rot); return { x, z, ax: [c, -s], az: [s, c], hw: W / 2 + m, hd: D / 2 + m }; }
+function solapan(A, B) {
+  for (const ax of [A.ax, A.az, B.ax, B.az]) {
+    const pa = Math.abs(A.ax[0] * ax[0] + A.ax[1] * ax[1]) * A.hw + Math.abs(A.az[0] * ax[0] + A.az[1] * ax[1]) * A.hd;
+    const pb = Math.abs(B.ax[0] * ax[0] + B.ax[1] * ax[1]) * B.hw + Math.abs(B.az[0] * ax[0] + B.az[1] * ax[1]) * B.hd;
+    if (Math.abs((B.x - A.x) * ax[0] + (B.z - A.z) * ax[1]) >= pa + pb) return false;
+  }
+  return true;
+}
+function choca(it, x, z, rot, o) {
+  const h1 = it.obj.userData.size.H, h2 = o.obj.userData.size.H; if (it.elev >= o.elev + h2 - .01 || o.elev >= it.elev + h1 - .01) return false;
+  return solapan(rect(it, x, z, rot, -.01), rect(o, o.x, o.z, o.rot, -.01));
 }
 function tryMove(it, x, z, rot = it.rot) { const cur = penalty(it), nxt = penalty(it, x, z, rot); if (products.get(it.pid).fam === 'planta' && !it.libre && soporteBajo(it, x, z).bloqueado) return false; if (nxt === 0 || nxt <= cur) { const ox = it.x, oz = it.z, orot = it.rot; it.x = x; it.z = z; it.rot = rot; apoyar(it); place(it); arrastrarEncima(it, ox, oz, orot); return true; } return false; }
 // lo que va encima de otro mueble (lámparas de mesa, la tele) se apoya solo sobre lo que tenga debajo
@@ -925,28 +1088,35 @@ function select(it, openPanel = true) {
   sync?.seleccion(it ? slotIdOf(it) : null);
   if (it && paredSel) cerrarPared();
   selected = it; const panel = $('sel');
-  if (!it) { panel.style.display = 'none'; selBox.visible = false; return; }
+  if (!it) { panel.style.display = 'none'; selBox.visible = false; if (esMovil() && hojaEstado === 'mitad' && ponerHoja.porSel) { ponerHoja.porSel = false; ponerHoja('peek'); } return; }
+  $('selMas').hidden = true; $('selMasBtn').classList.remove('sel');
   const p = products.get(it.pid), f = finishOf(p, it.acabado);
   $('selG').textContent = p.existing ? 'Lo que ya tienes' : (it.replaces ? 'Sustituye a tu ' + (products.get('ex' + it.replaces)?.name || 'mueble') : 'Nuevo');
-  $('selName').textContent = p.name; $('selFoto').style.display = f?.img ? 'block' : 'none'; if (f?.img) { $('selFoto').src = f.img; $('selFoto').onclick = () => f.url && window.open(f.url, '_blank'); }
+  $('selName').textContent = p.name; if (f?.img) $('selFoto').setAttribute('src', f.img); else $('selFoto').removeAttribute('src'); if (f?.img) { $('selFoto').onclick = () => f.url && window.open(f.url, '_blank'); }
   $('selInfo').textContent = p.existing ? `${p.w}×${p.d}×${p.h} cm · no suma al presupuesto` : `${f ? f.name + ' · ' : ''}${p.w}×${p.d}×${p.h} cm${p.approx ? ' (aprox.)' : ''} · ${euro(priceOf(it))}`;
   $('exEdit').style.display = p.existing ? 'block' : 'none';
-  if (p.existing) { $('exW').value = p.w; $('exD').value = p.d; $('exH').value = p.h; }
+  if (p.existing) { $('exW').value = p.w; $('exD').value = p.d; $('exH').value = p.h; $('exN').value = p.name; if (!$('exC').options.length) $('exC').innerHTML = Object.entries(CAT_ES).map(([k, v]) => `<option value="${k}">${v}</option>`).join(''); $('exC').value = p.cat; }
   $('elev').value = Math.round(it.elev * 100);
   panel.style.display = 'block'; selBox.setFromObject(it.obj); selBox.visible = true; refreshWarnings();
   if (openPanel) { openSlot = slotIdOf(it); renderPanel(); const el = document.querySelector(`details[data-slot="${openSlot}"]`); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
 }
 function refreshWarnings() {
   for (const it of items) { if (products.get(it.pid).existing) continue; const out = penalty(it) > 0; it.obj.traverse(o => { if (o.isMesh) { if (Array.isArray(o.material) || !o.material.emissive) return; if (!o.userData.own) { o.material = o.material.clone(); o.userData.own = true; } o.material.emissive.set(out ? '#6a1a00' : '#000'); } }); }
-  if (selected) { $('selWarn').style.display = !products.get(selected.pid).existing && penalty(selected) > 0 ? 'block' : 'none'; selBox.setFromObject(selected.obj); }
+  if (selected) { const pen = !products.get(selected.pid).existing ? penalty(selected) : 0, choque = pen > 0 && esSolido(selected) && items.some(o => o !== selected && o.room === selected.room && esSolido(o) && choca(selected, selected.x, selected.z, selected.rot, o));
+    const av = !products.get(selected.pid).existing ? avisosSala(selected.room).filter(a => a.it === selected) : [];
+    $('selWarn').innerHTML = pen > 0 ? (choque ? 'Choca con otro mueble' : 'Se sale de la habitación') : av.length ? av[0].t : ''; $('selWarn').style.display = $('selWarn').innerHTML ? 'block' : 'none'; selBox.setFromObject(selected.obj); }
 }
 
 // ================= Vistas, habitaciones y luces =================
 const roomBox = r => ({ ...r.box, cx: (r.box.x0 + r.box.x1) / 2, cz: (r.box.z0 + r.box.z1) / 2, y: r.floorY });
 function frameCamera(b, mode) {
   const size = Math.max(b.x1 - b.x0, b.z1 - b.z0, 2); controls.target.set(b.cx, b.y, b.cz);
-  if (mode === 'plan') { camera.fov = 20; controls.enableRotate = false; camera.up.set(0, 0, -1); camera.position.set(b.cx, b.y + size * 3.4 + 4, b.cz + .001); }
-  else { camera.fov = 50; controls.enableRotate = true; camera.up.set(0, 1, 0); camera.position.set(b.cx + size * .7, b.y + size * .9 + 1.2, b.cz + size * .9); }
+  // Distancia para que la habitación quepa en la parte visible (en el móvil, la que no tapa la hoja)
+  const vr = view.getBoundingClientRect(), tapa = esMovil() ? Math.min(vr.height * .6, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hoja')) || 0) : 0;
+  const asp = Math.max(.3, vr.width / Math.max(1, vr.height - tapa)), radio = Math.hypot(b.x1 - b.x0, b.z1 - b.z0, 1.2) / 2 + .2;
+  const ajusta = fov => { const fv = fov * Math.PI / 180, fh = 2 * Math.atan(Math.tan(fv / 2) * asp); return radio / Math.sin(Math.min(fv, fh) / 2); };
+  if (mode === 'plan') { camera.fov = 20; controls.enableRotate = false; camera.up.set(0, 0, -1); camera.position.set(b.cx, b.y + ajusta(20) * 1.02, b.cz + .001); }
+  else { camera.fov = 50; controls.enableRotate = true; camera.up.set(0, 1, 0); const d = ajusta(50) * .92, v = new THREE.Vector3(.62, .78, .8).normalize(); camera.position.set(b.cx + v.x * d, b.y + v.y * d, b.cz + v.z * d); }
   camera.updateProjectionMatrix(); camera.lookAt(controls.target); controls.update();
 }
 const dimCache = new Map();
@@ -982,8 +1152,8 @@ function setRoom(i, reframe = true) {
   document.querySelectorAll('#salas button').forEach(b => b.classList.toggle('sel', +b.dataset.r === i));
   flat.rooms.forEach(r => { const dim = i >= 0 && r.i !== i; r.group.traverse(o => { if (o.isMesh) { if (!o.userData.baseMat) o.userData.baseMat = o.material; const base = o.userData.pared ? (paredMats.get(o.userData.pared) || wallMat) : o.userData.baseMat; o.material = dim ? dimMat(base) : base; } }); });
   items.forEach(it => it.obj.visible = i < 0 || it.room === i);
-  if (reframe) frameCamera(i >= 0 ? roomBox(flat.rooms[i]) : flatBox(), viewMode);
-  ponerLuces(); renderPanel(); updateWalls();
+  if (reframe) { if (viewMode === 'fp') { if (i < 0) ponerVista('3d'); else entrarPaseo(); } else frameCamera(i >= 0 ? roomBox(flat.rooms[i]) : flatBox(), viewMode); }
+  ponerLuces(); renderPanel(); updateWalls(); pintarSuelos();
 }
 function updateWalls() {
   if (!flat) return;
@@ -1019,7 +1189,7 @@ function ponerLuces() {
 }
 function renderRooms() {
   const el = $('salas'); el.innerHTML = '';
-  const mk = (txt, i) => { const b = document.createElement('button'); b.className = 'pildora'; b.textContent = txt; b.dataset.r = i; b.onclick = () => setRoom(i); el.appendChild(b); };
+  const mk = (txt, i) => { const b = document.createElement('button'); b.textContent = txt; b.dataset.r = i; b.onclick = () => setRoom(i); el.appendChild(b); };
   mk('Todo el piso', -1); flat.rooms.forEach(r => mk(r.name, r.i));
 }
 
@@ -1027,7 +1197,7 @@ function renderRooms() {
 const muestra = c => `<span class="muestra" style="background:${c}"></span>`;
 function totals() {
   const perRoom = flat.rooms.map(() => 0); let n = 0;
-  items.forEach(it => { const v = priceOf(it); if (!products.get(it.pid).existing) { perRoom[it.room] += v; n++; } });
+  items.forEach(it => { const v = priceOf(it); if (!products.get(it.pid).existing && it.fase !== '0') { perRoom[it.room] += v; n++; } });
   return { perRoom, total: perRoom.reduce((a, b) => a + b, 0), n };
 }
 function renderPanel() {
@@ -1044,6 +1214,8 @@ function renderPanel() {
   } else {
     const r = flat.rooms[currentRoom];
     $('h1').textContent = r.name; $('hp').textContent = 'Toca cada mueble para cambiarlo por otro modelo o acabado, o quítalo. Toca una pared para cambiar su color. Lo que ya tienes no suma al total.';
+    el.appendChild(htmlPropuestas(r.i)); el.appendChild(panelAmueblar(r.i));
+    const av = avisosSala(r.i); if (av.length) { const box = document.createElement('div'); box.className = 'avisos'; av.slice(0, 4).forEach(a => { const d = document.createElement('div'); d.className = 'aviso'; d.innerHTML = '⚠️ <span>' + a.t + '</span>'; d.onclick = () => select(a.it); box.appendChild(d); }); el.appendChild(box); }
     for (const slot of slotItems(r.i)) el.appendChild(slotGroup(slot));
     // añadir
     const d = document.createElement('details'); d.dataset.slot = 'add'; if (openSlot === 'add') d.open = true;
@@ -1121,7 +1293,10 @@ function slotGroup(slot) {
 // ================= Interacción en 3D =================
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(); let drag = null;
 function pick(e) { const r = renderer.domElement.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera); }
+const punteros = new Map();   // dedos en pantalla (para girar un mueble con dos dedos)
 renderer.domElement.addEventListener('pointerdown', e => {
+  punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (drag?.it && punteros.size === 2) { const [a, b] = [...punteros.values()]; drag.twist = { a0: Math.atan2(b.y - a.y, b.x - a.x), r0: drag.it.rot }; return; }
   if (!flat) return; pick(e);
   let hit = ray.intersectObjects(furnGroup.children.filter(o => o.visible), true)[0];
   if (hit && currentRoom >= 0) { const hw = ray.intersectObjects(flat.rooms[currentRoom].walls.flatMap(w => w.pieces).filter(m => m.visible))[0]; if (hw && hw.distance < hit.distance - .02) hit = null; }
@@ -1132,17 +1307,26 @@ renderer.domElement.addEventListener('pointerdown', e => {
   } else drag = { none: true, x: e.clientX, y: e.clientY };
 });
 renderer.domElement.addEventListener('pointermove', e => {
+  if (punteros.has(e.pointerId)) punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (drag?.twist && punteros.size >= 2) { const [a, b] = [...punteros.values()], ang = Math.atan2(b.y - a.y, b.x - a.x);
+    let r = drag.twist.r0 - (ang - drag.twist.a0); const paso = Math.PI / 12, k = Math.round(r / paso); if (Math.abs(r - k * paso) < .05) r = k * paso;
+    if (tryMove(drag.it, drag.it.x, drag.it.z, r)) { drag.moved = true; refreshWarnings(); empujar(150); } return; }
+  if (drag?.twist) return;
   if (!drag || drag.none) return; pick(e); const pt = new THREE.Vector3(); if (!ray.ray.intersectPlane(drag.plane, pt)) return;
-  const it = drag.it, nx = Math.round((pt.x + drag.dx) * 100) / 100, nz = Math.round((pt.z + drag.dz) * 100) / 100;
+  const it = drag.it; let nx = Math.round((pt.x + drag.dx) * 100) / 100, nz = Math.round((pt.z + drag.dz) * 100) / 100; [nx, nz] = iman(it, nx, nz);
   if (tryMove(it, nx, nz) || tryMove(it, nx, it.z) || tryMove(it, it.x, nz)) { drag.moved = true; refreshWarnings(); empujar(150); }
 });
+const soltar = e => { punteros.delete(e.pointerId); guia.visible = false; };
+renderer.domElement.addEventListener('pointercancel', e => { soltar(e); if (drag?.moved) changed(); drag = null; controls.enabled = true; });
 renderer.domElement.addEventListener('pointerup', e => {
+  soltar(e); if (drag?.twist && punteros.size) return;
   if (drag && drag.none && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) {
     pick(e);
     if (currentRoom >= 0) { const muros = flat.rooms[currentRoom].walls.flatMap(w => w.pieces).filter(m => m.visible && m.parent?.visible !== false); const hw = ray.intersectObjects(muros)[0], hf = ray.intersectObjects([flat.rooms[currentRoom].floor])[0];
       if (hw && (!hf || hw.distance < hf.distance)) { abrirPared(hw.object.userData.pared); drag = null; controls.enabled = true; return; } }
     cerrarPared();
     const h = ray.intersectObjects(flat.rooms.map(r => r.floor))[0];
+    if (viewMode === 'fp') { if (h) { if (h.object.userData.floorOf !== currentRoom) { currentRoom = h.object.userData.floorOf; } caminarA(h.point); } drag = null; controls.enabled = true; return; }
     if (h && h.object.userData.floorOf !== currentRoom) setRoom(h.object.userData.floorOf); else select(null);
   } else if (drag && drag.moved) changed();
   drag = null; controls.enabled = true;
@@ -1158,8 +1342,9 @@ $('del').onclick = () => { if (!selected) return; const it = selected; removeIte
 $('elevUp').onclick = () => { if (selected) { setElev(selected, selected.elev * 100 + 5); changed(); } };
 $('elevDown').onclick = () => { if (selected) { setElev(selected, selected.elev * 100 - 5); changed(); } };
 $('elev').addEventListener('change', () => { if (selected) { setElev(selected, +$('elev').value || 0); changed(); } });
-['exW', 'exD', 'exH'].forEach(id => $(id).addEventListener('change', () => {
+['exW', 'exD', 'exH', 'exN', 'exC'].forEach(id => $(id).addEventListener('change', () => {
   if (!selected) return; const p = products.get(selected.pid); if (!p.existing) return;
+  if ($('exN').value.trim()) p.name = $('exN').value.trim(); if ($('exC').value && $('exC').value !== p.cat) { p.cat = $('exC').value; p.estilo = undefined; }
   p.w = Math.max(5, +$('exW').value || p.w); p.d = Math.max(5, +$('exD').value || p.d); p.h = Math.max(5, +$('exH').value || p.h);
   rebuild(selected); select(selected, false); renderPanel(); changed();
 }));
@@ -1216,15 +1401,85 @@ if (window.EN_APP) { const b = $('arBtn'); b.style.display = ''; b.onclick = asy
   } catch (e) { toast('No se pudo preparar la realidad aumentada: ' + e.message); }
   b.disabled = false; b.textContent = t0; }; }
 
-document.querySelectorAll('[data-vista]').forEach(b => b.onclick = () => { viewMode = b.dataset.vista; document.querySelectorAll('[data-vista]').forEach(x => x.classList.toggle('sel', x === b)); if (flat) frameCamera(currentRoom >= 0 ? roomBox(flat.rooms[currentRoom]) : flatBox(), viewMode); updateWalls(); });
+function ponerVista(v) {
+  viewMode = v; document.querySelectorAll('[data-vista]').forEach(x => x.classList.toggle('sel', x.dataset.vista === v));
+  controls.enableZoom = controls.enablePan = v !== 'fp'; controls.rotateSpeed = v === 'fp' ? -.35 : 1; controls.minDistance = v === 'fp' ? .01 : 0; controls.maxDistance = v === 'fp' ? .02 : Infinity;
+  controls.maxPolarAngle = v === 'fp' ? Math.PI * .85 : Math.PI * .49; controls.minPolarAngle = v === 'fp' ? Math.PI * .15 : 0; controls.autoRotate = v !== 'fp' && ui.girar;
+  if (!flat) return;
+  if (v === 'fp') { if (currentRoom < 0) setRoom(flat.rooms.reduce((a, r) => r.area > a.area ? r : a).i, false); entrarPaseo(); }
+  else frameCamera(currentRoom >= 0 ? roomBox(flat.rooms[currentRoom]) : flatBox(), v);
+  updateWalls(); $('ayuda').textContent = v === 'fp' ? 'Arrastra para mirar alrededor · toca el suelo para caminar hasta ahí' : 'Toca una habitación para entrar · arrastra los muebles para moverlos · dos dedos sobre un mueble para girarlo · arrastra el fondo para girar la vista';
+}
+document.querySelectorAll('[data-vista]').forEach(b => b.onclick = () => ponerVista(b.dataset.vista));
+// Paseo en primera persona: a la altura de los ojos, tocar el suelo para caminar
+const OJOS = 1.6;
+function entrarPaseo() {
+  const r = flat.rooms[currentRoom], b = roomBox(r); camera.fov = 70; camera.up.set(0, 1, 0);
+  const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2, desde = new THREE.Vector3(b.x0 + (b.x1 - b.x0) * .2, r.floorY + OJOS, b.z0 + (b.z1 - b.z0) * .2);
+  const dir = new THREE.Vector3(cx, r.floorY + 1.2, cz).sub(desde).normalize();
+  camera.position.copy(desde); controls.target.copy(desde).addScaledVector(dir, .015); camera.updateProjectionMatrix(); controls.update();
+}
+let paseoAnim = null;
+function caminarA(pt) {
+  const r = flat.rooms[currentRoom]; if (!r) return; const fin = new THREE.Vector3(pt.x, r.floorY + OJOS, pt.z), ini = camera.position.clone(), off = controls.target.clone().sub(camera.position), t0 = performance.now(), dur = Math.min(1400, 300 + ini.distanceTo(fin) * 450);
+  cancelAnimationFrame(paseoAnim); const paso = () => { const k = Math.min(1, (performance.now() - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    camera.position.lerpVectors(ini, fin, e); controls.target.copy(camera.position).add(off); controls.update(); if (k < 1) paseoAnim = requestAnimationFrame(paso); }; paso();
+}
+// Foto bonita de la vista actual (alta resolución, sin marcas de selección)
+async function fotoRevista() {
+  $('opciones').hidden = true; const ocultos = [selBox, ...presCajas].filter(o => o.visible); ocultos.forEach(o => o.visible = false);
+  const pr = renderer.getPixelRatio(), r = view.getBoundingClientRect(); renderer.setPixelRatio(Math.min(3, Math.max(2, 2400 / r.width)));
+  renderer.setSize(r.width, r.height, false); const exp = renderer.toneMappingExposure; renderer.toneMappingExposure = exp * 1.04; renderer.render(scene, camera);
+  const url = renderer.domElement.toDataURL('image/jpeg', .92);
+  renderer.toneMappingExposure = exp; renderer.setPixelRatio(pr); resize(); ocultos.forEach(o => o.visible = true);
+  const nombre = (flat?.name || 'piso') + (currentRoom >= 0 ? ' - ' + flat.rooms[currentRoom].name : '') + '.jpg';
+  if (EN_APP) { try { window.webkit.messageHandlers.compartirFoto.postMessage({ jpg: url.split(',')[1], nombre }); return; } catch {} }
+  try { const blob = await (await fetch(url)).blob(), file = new File([blob], nombre, { type: 'image/jpeg' }); if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: nombre }); return; } } catch {}
+  const a = document.createElement('a'); a.href = url; a.download = nombre; a.click(); toast('Foto descargada');
+}
+$('fotoBtn').onclick = fotoRevista;
 $('b-mas').onclick = () => $('hoja').classList.add('abierta'); $('hojaCerrar').onclick = () => $('hoja').classList.remove('abierta');
 $('hoja').onclick = e => { if (e.target.id === 'hoja') $('hoja').classList.remove('abierta'); };
-$('b-copiar').onclick = async () => {
+// ================= Lista de la compra con fases =================
+const FASES = [['1', 'Ahora'], ['2', 'Más adelante'], ['0', 'No lo compro']];
+function refIkea(url) { const m = /(\d{8})\/?$/.exec(url || '') || /-[sS]?(\d{8})\/?$/.exec(url || ''); return m ? m[1].replace(/(\d{3})(\d{3})(\d{2})/, '$1.$2.$3') : ''; }
+function lineasCompra() {
+  const g = new Map();
+  for (const it of items) { const p = products.get(it.pid); if (p.existing) continue; const f = finishOf(p, it.acabado), k = it.pid + '|' + (f?.id || '') + '|' + (it.fase || '1');
+    if (!g.has(k)) g.set(k, { p, f, n: 0, precio: priceOf(it), fase: it.fase || '1', items: [], salas: new Set() }); const l = g.get(k); l.n++; l.items.push(it); l.salas.add(flat.rooms[it.room].name); }
+  return [...g.values()];
+}
+function abrirCompra() {
+  if (!flat) return; const L = lineasCompra(), tot = { 1: 0, 2: 0, 0: 0 }; L.forEach(l => tot[l.fase] += l.precio * l.n);
+  $('compraFases').innerHTML = FASES.map(([k, n]) => `<div><span>${n}</span><b>${euro(tot[k])}</b></div>`).join('');
+  const porSala = new Map(); L.forEach(l => { const s = [...l.salas][0]; if (!porSala.has(s)) porSala.set(s, []); porSala.get(s).push(l); });
+  $('compraLista').className = 'lc'; $('compraLista').innerHTML = !L.length ? '<p class="nota">Aún no has añadido nada nuevo.</p>' : [...porSala].map(([s, ls]) => `<h3><span>${esc(s)}</span><span>${euro(ls.reduce((a, l) => a + l.precio * l.n, 0))}</span></h3>` + ls.map((l, i) => {
+    const url = l.f?.url || l.p.url || '', ref = refIkea(url);
+    return `<div class="art" data-k="${esc(l.items.map(x => x.uid).join(','))}">${l.f?.img ? `<img src="${l.f.img}" alt="">` : '<span></span>'}<div><a href="${url}" target="_blank" rel="noopener">${l.n > 1 ? l.n + ' × ' : ''}${esc(l.p.name)}</a><br><small>${esc(l.f?.name || '')}${ref ? ' · ' + ref : ''}</small></div><div class="pr">${euro(l.precio * l.n)}${l.n > 1 ? `<br><small>${euro(l.precio)} c/u</small>` : ''}</div>
+      <div class="fase">${FASES.map(([k, n]) => `<button data-f="${k}" class="${l.fase === k ? 'sel' : ''}">${n}</button>`).join('')}</div></div>`; }).join('')).join('');
+  $('compraLista').querySelectorAll('.art').forEach(el => el.querySelectorAll('.fase button').forEach(b => b.onclick = () => {
+    const uids = el.dataset.k.split(','); items.forEach(it => { if (uids.includes(String(it.uid))) it.fase = b.dataset.f === '1' ? undefined : b.dataset.f; }); changed(); abrirCompra(); }));
+  $('compra').classList.add('abierta');
+}
+function textoCompra(csv) {
+  const L = lineasCompra().filter(l => l.fase !== '0'); let t = csv ? 'Fase;Habitación;Cantidad;Producto;Acabado;Referencia;Precio unidad;Total;Enlace\n' : 'Lista de la compra · ' + flat.name + '\n';
+  for (const [k, n] of FASES.filter(f => f[0] !== '0')) { const ls = L.filter(l => l.fase === k); if (!ls.length) continue; if (!csv) t += `\n${n.toUpperCase()} — ${euro(ls.reduce((a, l) => a + l.precio * l.n, 0))}\n`;
+    for (const l of ls) { const url = l.f?.url || l.p.url || '', ref = refIkea(url);
+      t += csv ? `${n};${[...l.salas].join(' + ')};${l.n};${l.p.name};${l.f?.name || ''};${ref};${l.precio.toFixed(2).replace('.', ',')};${(l.precio * l.n).toFixed(2).replace('.', ',')};${url}\n` : `· ${l.n} × ${l.p.name}${l.f?.name ? ' (' + l.f.name + ')' : ''}${ref ? ' — ref. ' + ref : ''} — ${euro(l.precio * l.n)}\n`; } }
+  return t;
+}
+async function copiarTexto(t, ok) { try { await navigator.clipboard.writeText(t); toast(ok); } catch { $('designText').value = t; $('hoja').classList.add('abierta'); toast('Cópialo del cuadro de texto'); } }
+$('compraCopiar').onclick = () => copiarTexto(textoCompra(false), 'Lista copiada');
+$('compraCsv').onclick = () => copiarTexto(textoCompra(true), 'Copiada: pégala en Excel o Sheets');
+$('compraCerrar').onclick = () => $('compra').classList.remove('abierta');
+$('compra').onclick = e => { if (e.target === $('compra')) $('compra').classList.remove('abierta'); };
+$('b-copiar').onclick = abrirCompra;
+$('b-copiar-viejo') && ($('b-copiar-viejo').onclick = async () => {
   if (!flat) return; let txt = 'Habitación;Producto;Acabado;Precio;Sustituye a;Enlace\n'; let tot = 0;
   items.filter(i => !products.get(i.pid).existing).forEach(i => { const p = products.get(i.pid), f = finishOf(p, i.acabado), v = priceOf(i); tot += v; txt += `${flat.rooms[i.room].name};${p.name};${f ? f.name : ''};${v.toFixed(2).replace('.', ',')};${i.replaces ? products.get('ex' + i.replaces)?.name || '' : ''};${f?.url || p.url || ''}\n`; });
   txt += `;TOTAL;;${tot.toFixed(2).replace('.', ',')};;\n`;
   try { await navigator.clipboard.writeText(txt); toast('Presupuesto copiado (pégalo en Excel o Sheets)'); } catch { $('designText').value = txt; $('hoja').classList.add('abierta'); toast('Cópialo del cuadro de texto'); }
-};
+});
 $('addCustom').onclick = () => {
   const v = id => $(id).value, name = v('cName').trim(); if (!name) return toast('Ponle un nombre');
   const p = { id: 'c' + Date.now(), fam: ({ table: 'dining', box: 'otro' })[v('cK')] || KIND_FAM[v('cK')], name, w: +v('cW') || 50, d: +v('cD') || 50, h: +v('cH') || 50, kind: v('cK'), custom: true, elev: v('cK') === 'wallshelf' ? 150 : 0, acabados: [{ id: 'propio', name: 'Propio', color: '#c9c2b4', price: +v('cP') || 0, url: v('cU').trim() || null }] };
@@ -1234,27 +1489,28 @@ $('addCustom').onclick = () => {
 // ================= Diseño: guardar / cargar / sincronizar =================
 function serialize() {
   const ex = {};
-  flat.rooms.forEach(r => r.objects.forEach(o => { const p = products.get(o.pid), it = items.find(i => i.existing === o.key); ex[o.key] = { removed: !it, x: it?.x, z: it?.z, rot: it?.rot, elev: it?.elev, libre: it?.libre, name: p.name, w: p.w, d: p.d, h: p.h }; }));
+  flat.rooms.forEach(r => r.objects.forEach(o => { const p = products.get(o.pid), it = items.find(i => i.existing === o.key); ex[o.key] = { removed: !it, x: it?.x, z: it?.z, rot: it?.rot, elev: it?.elev, libre: it?.libre, name: p.name, cat: p.cat, w: p.w, d: p.d, h: p.h }; }));
   return { version: 2, proyecto: flat.name, actualizado: new Date().toISOString(),
-    nuevos: items.filter(i => !i.existing).map(({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre }) => ({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre })),
-    existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {}, sync: design?.sync || null };
+    nuevos: items.filter(i => !i.existing).map(({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase }) => ({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase: fase || null })),
+    existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {}, suelos: design?.suelos || {}, propuestas: design?.propuestas || {}, sync: design?.sync || null };
 }
 function applyDesign(d) {
   [...items].forEach(i => furnGroup.remove(i.obj)); items = []; select(null);
   (d?.propios || []).forEach(p => { if (!p.acabados) p.acabados = [{ id: 'propio', name: 'Propio', color: p.color || '#c9c2b4', price: p.price || 0, url: p.url || null }]; products.set(p.id, p); });
   flat.rooms.forEach(r => r.objects.forEach(o => {
     const e = d?.existentes?.[o.key], p = products.get(o.pid);
-    if (e) { if (e.name) p.name = e.name; if (e.w) { p.w = e.w; p.d = e.d; p.h = e.h; } }
+    if (e) { if (e.name) p.name = e.name; if (e.cat) p.cat = e.cat; if (e.w) { p.w = e.w; p.d = e.d; p.h = e.h; } }
     if (e?.removed) return;
     addItem(o.pid, r.i, e?.x ?? o.x, e?.z ?? o.z, e?.rot ?? o.rot, e?.elev != null ? { existing: o.key, elev: e.elev, libre: e.libre } : { existing: o.key, y: o.y });
   }));
-  (d?.nuevos || []).forEach(n => { if (flat.rooms[n.room] && products.get(n.pid)) addItem(n.pid, n.room, n.x, n.z, n.rot, { uid: n.uid, elev: n.elev, acabado: n.acabado, replaces: n.replaces, libre: n.libre }); });
+  (d?.nuevos || []).forEach(n => { if (flat.rooms[n.room] && products.get(n.pid)) addItem(n.pid, n.room, n.x, n.z, n.rot, { uid: n.uid, elev: n.elev, acabado: n.acabado, replaces: n.replaces, libre: n.libre, fase: n.fase }); });
   design = d || {}; paredMats.clear(); for (const r of flat.rooms) for (const w of r.walls) w.pieces.forEach(m => m.material = wallMat);
   for (const [k, c] of Object.entries(design.paredes || {})) pintarPared(k, c);
+  flat.rooms.forEach(r => { r.floor.material = r.floorMat0; r.floor.userData.baseMat = r.floorMat0; }); for (const [ri, id] of Object.entries(design.suelos || {})) ponerSuelo(+ri, id);
   reapoyarTodo(); refreshWarnings();
 }
 let saveTimer = null;
-function changed() { reapoyarTodo(); if (ui.noche) ponerLuces(); renderPanel(); clearTimeout(saveTimer); saveTimer = setTimeout(save, 800); empujar(); }
+function changed() { clearTimeout(changed.h); changed.h = setTimeout(instantanea, 250); reapoyarTodo(); if (ui.noche) ponerLuces(); renderPanel(); clearTimeout(saveTimer); saveTimer = setTimeout(save, 800); empujar(); }
 function save() {
   if (!flat) return; design = serialize(); store.set('diseno:' + flat.name, design); sync?.enviar(design);
   if (EN_APP) { try { window.webkit.messageHandlers.guardar.postMessage(JSON.stringify(design)); } catch {} } else drive.queue(design);
@@ -1298,6 +1554,7 @@ function moverA(it, n) {
 function aplicarRemoto(d) {
   if (!flat || !d) return;
   let cambio = false; const sel = selected ? slotIdOf(selected) : null;
+  if (d.propuestas && JSON.stringify(d.propuestas) !== JSON.stringify(design?.propuestas || {})) { design.propuestas = d.propuestas; cambio = true; }
   (d.propios || []).forEach(p => { if (!products.has(p.id)) { if (!p.acabados) p.acabados = [{ id: 'propio', name: 'Propio', color: p.color || '#c9c2b4', price: p.price || 0, url: p.url || null }]; products.set(p.id, p); cambio = true; } });
   flat.rooms.forEach(r => r.objects.forEach(o => {
     const e = d.existentes?.[o.key]; if (!e) return; const it = items.find(i => i.existing === o.key);
@@ -1310,12 +1567,15 @@ function aplicarRemoto(d) {
     vistos.add(String(n.uid)); if (!flat.rooms[n.room] || !products.get(n.pid)) continue;
     let it = items.find(i => !i.existing && String(i.uid) === String(n.uid));
     if (it && (it.pid !== n.pid || it.acabado !== n.acabado)) { removeItem(it); it = null; }
-    if (!it) { addItem(n.pid, n.room, n.x, n.z, n.rot, { uid: n.uid, elev: n.elev, acabado: n.acabado, replaces: n.replaces, libre: n.libre }); cambio = true; continue; }
+    if (!it) { addItem(n.pid, n.room, n.x, n.z, n.rot, { uid: n.uid, elev: n.elev, acabado: n.acabado, replaces: n.replaces, libre: n.libre, fase: n.fase }); cambio = true; continue; }
     if (drag?.it === it) continue;
     if (moverA(it, n)) cambio = true;
     if ((it.replaces || null) !== (n.replaces || null)) { it.replaces = n.replaces || null; cambio = true; }
+    if ((it.fase || null) !== (n.fase || null)) { it.fase = n.fase || undefined; cambio = true; }
   }
   for (const it of items.filter(i => !i.existing && !vistos.has(String(i.uid)))) { if (drag?.it === it) continue; removeItem(it); cambio = true; }
+  const su = d.suelos || {}, sa = { ...(design?.suelos || {}) };
+  for (const k of new Set([...Object.keys(su), ...Object.keys(sa)])) if (su[k] !== sa[k]) { ponerSuelo(+k, su[k] || 'escaneo'); cambio = true; }
   const pa = d.paredes || {}, act = { ...(design?.paredes || {}) };
   for (const k of new Set([...Object.keys(pa), ...Object.keys(act)])) if (pa[k] !== act[k]) { pintarPared(k, pa[k] || null); cambio = true; }
   if (!cambio) return;
@@ -1341,7 +1601,7 @@ function estadoSincro(e, info) {
 function pintarChip() {
   const c = $('envivo'); if (!c) return;
   const txt = { conectando: 'Conectando…', envivo: 'En vivo', sinconexion: 'Sin conexión · se guarda y se envía al volver', subiendo: estTexto, error: 'Sin sincronizar' }[estSincro];
-  c.hidden = !txt; c.className = 'envivo ' + estSincro;
+  c.hidden = !txt; c.className = 'envivo est-' + estSincro;
   const otros = [...new Set(ultPres.map(o => o.nombre))];
   c.innerHTML = '<i></i>' + esc(txt || '') + (estSincro === 'envivo' && otros.length ? ' · ' + esc(otros.join(', ')) + ' conectado' : '');
   c.title = estSincro === 'error' ? estTexto : '';
@@ -1401,7 +1661,7 @@ async function loadProject({ name, piso, ply, savedDesign }) {
   buildFlat(piso); renderRooms();
   let d = savedDesign || null; const local = store.get('diseno:' + name); if (local && (!d || local.actualizado > d.actualizado)) d = local; if (d && !d.sync && savedDesign?.sync) d = { ...d, sync: savedDesign.sync };
   await paso('Colocando los muebles…');
-  applyDesign(d); setRoom(-1);
+  applyDesign(d); setRoom(-1); historial.pila = []; historial.pos = -1; instantanea();
   } catch (e) { console.error(e); $('loadMsg').innerHTML = 'No se pudo construir el modelo.<br><small>' + esc(String(e?.stack || e).split('\n').slice(0, 3).join(' · ')) + '</small>'; return; }
   $('carga').style.display = 'none';
   if (name !== 'piso_ejemplo') iniciarSincro(piso);
@@ -1427,11 +1687,241 @@ async function abrirPisoVivo(id) {
     history.replaceState(null, '', '?piso=' + id);
   } catch (e) { $('loadMsg').innerHTML = 'No se pudo abrir el piso en vivo.<br><small>' + esc(e.message || String(e)) + '</small>'; }
 }
+
+
+
+// ================= Amueblar por mí =================
+const ESTILOS = {
+  claro: { nombre: 'Nórdico claro', si: /blanc|roble claro|abedul|beige|natural|pino|crema|gris claro|tinte blanco|hueso/i, no: /negro|antracita|nogal|oscuro/i },
+  calido: { nombre: 'Cálido con madera', si: /roble|nogal|marr|madera|verde|terracota|teca|mostaza|ratán|bambú|tinte marrón/i, no: /blanco brillante/i },
+  oscuro: { nombre: 'Moderno oscuro', si: /negro|antracita|gris oscuro|marrón oscuro|grafito|nogal/i, no: /blanco|beige|roble claro/i },
+};
+const RECETAS = {
+  salon: [['sofa', 'pared', .3], ['tvunit', 'frente', .12], ['coffee', 'delante', .07], ['rug', 'alfombra', .09], ['armchair', 'lado', .1], ['lampPie', 'esquinaSofa', .05], ['shelf', 'pared', .1], ['planta', 'esquina', .03], ['cuadro', 'encima', .04]],
+  dormitorio: [['bed', 'pared', .35], ['bedside', 'mesillaI', .05], ['bedside', 'mesillaD', .05], ['wardrobe', 'pared', .25], ['rug', 'pieCama', .07], ['lampMesa', 'sobreMesillaI', .03], ['lampMesa', 'sobreMesillaD', .03], ['cuadro', 'encima', .04], ['planta', 'esquina', .03]],
+  despacho: [['desk', 'ventana', .3], ['chair', 'silla', .15], ['shelf', 'pared', .2], ['lampMesa', 'sobreMesa', .05], ['rug', 'alfombra', .1], ['planta', 'esquina', .04], ['cuadro', 'encima', .05]],
+  comedor: [['dining', 'centro', .35], ['chair', 'sillas', .3], ['storage', 'pared', .2], ['planta', 'esquina', .05], ['cuadro', 'pared', .05]],
+};
+function tipoSala(r) {
+  const n = r.name.toLowerCase(), ex = r.objects.map(o => products.get(o.pid)?.cat);
+  if (/dormit|habitaci|cuarto|suite/.test(n) || ex.includes('bed')) return 'dormitorio';
+  if (/despacho|estudio|oficina/.test(n)) return 'despacho'; if (/comedor/.test(n)) return 'comedor'; return 'salon';
+}
+const CUBRE = { sofa: ['sofa'], bed: ['bed'], tvunit: ['television'], wardrobe: ['storage'], dining: ['table'], desk: ['table'], chair: ['chair'] };
+function elegir(fam, presu, estilo, maxW, usados) {
+  const E = ESTILOS[estilo]; let mejor = null;
+  for (const p of products.values()) {
+    if (p.existing || p.custom || p.fam !== fam || usados.has(p.id) || !p.acabados?.length) continue;
+    if (maxW && p.w / 100 > maxW) continue;
+    for (const a of p.acabados) {
+      const pr = a.price ?? p.price ?? 0; if (!pr) continue; const t = (a.name || '') + ' ' + p.name;
+      let sc = -Math.abs(Math.log((pr + 20) / (presu + 20))) * 2; if (pr > presu * 1.35) sc -= 3; if (E.si.test(t)) sc += 1.6; if (E.no.test(t)) sc -= 1.6; if (a.img) sc += .3;
+      if (!mejor || sc > mejor.sc) mejor = { p, a, sc };
+    }
+  }
+  return mejor;
+}
+function paredesDe(r) {
+  const out = [], P = r.poly, mx = (r.box.x0 + r.box.x1) / 2, mz = (r.box.z0 + r.box.z1) / 2;
+  for (let i = 0; i < P.length; i++) { const [ax, az] = P[i], [bx, bz] = P[(i + 1) % P.length], L = Math.hypot(bx - ax, bz - az); if (L < .6) continue;
+    const tx = (bx - ax) / L, tz = (bz - az) / L; let nx = -tz, nz = tx; if (!pointInPoly((ax + bx) / 2 + nx * .05, (az + bz) / 2 + nz * .05, P)) { nx = -nx; nz = -nz; }
+    const cerca = (x, z) => { const t = (x - ax) * tx + (z - az) * tz, d = Math.abs((x - ax) * nx + (z - az) * nz); return d < .35 && t > -.3 && t < L + .3; };
+    out.push({ ax, az, tx, tz, nx, nz, L, puerta: (r.puertas || []).some(p => cerca(p.x, p.z)), ventana: (r.ventanas || []).some(v => cerca(v.x, v.z)), usada: 0, dist: Math.hypot((ax + bx) / 2 - mx, (az + bz) / 2 - mz) }); }
+  return out;
+}
+function contraPared(it, w, t) {
+  const D = it.obj.userData.size.D, off = D / 2 + WALL_MARGIN + .002, px = w.ax + w.tx * t, pz = w.az + w.tz * t;
+  it.x = px + w.nx * off; it.z = pz + w.nz * off; it.rot = Math.atan2(w.nx, w.nz); place(it);
+}
+function colocarEnPared(it, paredes, pref) {
+  const W = it.obj.userData.size.W, orden = paredes.filter(w => w.L > W + .15).sort((a, b) => pref(b) - pref(a));
+  for (const w of orden) for (const f of [.5, .3, .7, .15, .85]) { contraPared(it, w, Math.max(W / 2 + .05, Math.min(w.L - W / 2 - .05, w.L * f))); if (penalty(it) === 0) { w.usada++; return w; } }
+  const sp = findSpot(it, it.x, it.z); if (sp) { it.x = sp[0]; it.z = sp[1]; place(it); } return null;
+}
+function amueblarPorMi(ri, estilo, presupuesto) {
+  const r = flat.rooms[ri], tipo = tipoSala(r), receta = RECETAS[tipo], ex = r.objects.filter(o => items.some(i => i.existing === o.key)).map(o => products.get(o.pid)?.cat);
+  const paredes = paredesDe(r), usados = new Set(), ref = {}, añadidos = []; let gastado = 0;
+  const yaTiene = fam => (CUBRE[fam] || []).some(c => ex.includes(c));
+  const pon = (fam, x, z, rot = 0) => { const peso = receta.find(q => q[0] === fam)?.[2] || .05, m = elegir(fam, presupuesto * peso, estilo, fam === 'rug' ? Math.min(r.box.x1 - r.box.x0, r.box.z1 - r.box.z0) * .8 : null, usados); if (!m) return null;
+    usados.add(m.p.id); const it = addItem(m.p.id, ri, x, z, rot, { acabado: m.a.id }); if (it) { añadidos.push(it); gastado += m.a.price || 0; } return it; };
+  const cx = (r.box.x0 + r.box.x1) / 2, cz = (r.box.z0 + r.box.z1) / 2;
+  for (const [fam, donde] of receta) {
+    if (yaTiene(fam) && !['chair'].includes(fam)) {
+      if (['sofa', 'bed', 'desk'].includes(fam) && !ref.base) { const cat = CUBRE[fam]; const e = items.find(i => i.room === ri && i.existing && cat.includes(products.get(i.pid)?.cat));
+        if (e) { const w = paredes.map(w => ({ w, d: Math.abs((e.x - w.ax) * w.nx + (e.z - w.az) * w.nz) })).sort((a, b) => a.d - b.d)[0]?.w; if (w) { w.usada++; ref.base = { it: e, w }; if (fam !== 'sofa') ref.cama = e; } } }
+      continue; }
+    if (gastado > presupuesto * 1.05 && !['planta', 'cuadro', 'rug'].includes(fam)) continue;
+    let it = null;
+    if (donde === 'pared' || donde === 'ventana') { it = pon(fam, cx, cz); if (!it) continue; const w = colocarEnPared(it, paredes, w => (donde === 'ventana' ? (w.ventana ? 3 : 0) : (w.ventana ? -1 : 0)) + (w.puerta ? -4 : 0) - w.usada * 3 + w.L); if (fam === 'sofa' || fam === 'bed' || fam === 'desk') ref.base = { it, w }; if (fam === 'bed' || fam === 'desk') ref.cama = it; }
+    else if (donde === 'frente' && ref.base) { const opp = paredes.filter(w => w !== ref.base.w).sort((a, b) => (a.nx * ref.base.w.nx + a.nz * ref.base.w.nz) - (b.nx * ref.base.w.nx + b.nz * ref.base.w.nz))[0]; it = pon(fam, cx, cz); if (!it) continue; if (opp) colocarEnPared(it, [opp], () => 1); else { const sp = findSpot(it, cx, cz); if (sp) { it.x = sp[0]; it.z = sp[1]; place(it); } } }
+    else if ((donde === 'delante' || donde === 'alfombra' || donde === 'pieCama') && (ref.base || donde === 'alfombra')) {
+      const b = ref.base?.it, w = ref.base?.w, D = b ? b.obj.userData.size.D : 0, d = donde === 'pieCama' ? D / 2 + .3 : D / 2 + .55;
+      const x = b ? b.x + w.nx * d : cx, z = b ? b.z + w.nz * d : cz; it = pon(fam, x, z, b ? b.rot : 0); if (!it) continue;
+      if (fam !== 'rug') { const sp = findSpot(it, x, z); if (sp) { it.x = sp[0]; it.z = sp[1]; place(it); } }
+      if (fam === 'rug' && b && donde !== 'pieCama') { it.x = b.x + w.nx * (D / 2 + .55); it.z = b.z + w.nz * (D / 2 + .55); place(it); }
+    }
+    else if (donde === 'lado' && ref.base) { const b = ref.base.it, w = ref.base.w, W = b.obj.userData.size.W; it = pon(fam, b.x + w.tz * 0 + w.tx * (W / 2 + .6) + w.nx * .5, b.z + w.tz * (W / 2 + .6) + w.nz * .5, b.rot - Math.PI / 4); if (!it) continue; const sp = findSpot(it, it.x, it.z); if (sp) { it.x = sp[0]; it.z = sp[1]; place(it); } }
+    else if (donde === 'esquinaSofa' && ref.base) { const b = ref.base.it, w = ref.base.w, W = b.obj.userData.size.W; it = pon(fam, b.x - w.tx * (W / 2 + .25), b.z - w.tz * (W / 2 + .25)); if (!it) continue; const sp = findSpot(it, it.x, it.z); if (sp) { it.x = sp[0]; it.z = sp[1]; place(it); } }
+    else if ((donde === 'mesillaI' || donde === 'mesillaD') && ref.cama) { const b = ref.cama, w = ref.base.w, W = b.obj.userData.size.W, sg = donde === 'mesillaI' ? -1 : 1; it = pon(fam, b.x, b.z, b.rot); if (!it) continue; const wd = it.obj.userData.size, D0 = b.obj.userData.size.D;
+      it.x = b.x + sg * w.tx * (W / 2 + wd.W / 2 + .05) - w.nx * (D0 / 2 - wd.D / 2 - .0); it.z = b.z + sg * w.tz * (W / 2 + wd.W / 2 + .05) - w.nz * (D0 / 2 - wd.D / 2); place(it); ref[donde] = it; }
+    else if (donde.startsWith('sobre')) { const base = donde === 'sobreMesa' ? ref.cama : ref[donde === 'sobreMesillaI' ? 'mesillaI' : 'mesillaD']; if (!base) continue; it = pon(fam, base.x, base.z, base.rot); if (it) apoyar(it, true); }
+    else if (donde === 'silla' && ref.cama) { const b = ref.cama, w = ref.base.w; it = pon(fam, b.x + w.nx * (b.obj.userData.size.D / 2 + .35), b.z + w.nz * (b.obj.userData.size.D / 2 + .35), b.rot + Math.PI); }
+    else if (donde === 'centro') { it = pon(fam, cx, cz); if (!it) continue; const sp = findSpot(it, cx, cz); if (sp) { it.x = sp[0]; it.z = sp[1]; place(it); } ref.mesa = it; }
+    else if (donde === 'sillas' && ref.mesa) { const m = ref.mesa, { W, D } = m.obj.userData.size, c = Math.cos(m.rot), s = Math.sin(m.rot), pos = [[-W / 4, D / 2 + .3, Math.PI], [W / 4, D / 2 + .3, Math.PI], [-W / 4, -D / 2 - .3, 0], [W / 4, -D / 2 - .3, 0]];
+      const m0 = elegir('chair', presupuesto * .07, estilo, null, usados); if (!m0) continue; usados.add(m0.p.id);
+      for (const [lx, lz, rr] of pos) { const x = m.x + lx * c + lz * s, z = m.z - lx * s + lz * c, ch = addItem(m0.p.id, ri, x, z, m.rot + rr, { acabado: m0.a.id }); if (ch) { añadidos.push(ch); gastado += m0.a.price || 0; } } continue; }
+    else if (donde === 'encima') { const b = ref.base?.it; it = pon(fam, b ? b.x : cx, b ? b.z : cz); }
+    else if (donde === 'esquina') { const P = r.poly, k = P.reduce((a, q, i) => (Math.hypot(q[0] - cx, q[1] - cz) > Math.hypot(P[a][0] - cx, P[a][1] - cz) ? i : a), 0); it = pon(fam, P[k][0] + (cx - P[k][0]) * .12, P[k][1] + (cz - P[k][1]) * .12); if (!it) continue; const sp = findSpot(it, it.x, it.z, it.rot, 1.5); if (sp) { it.x = sp[0]; it.z = sp[1]; place(it); } }
+    else { it = pon(fam, cx, cz); if (!it) continue; const sp = findSpot(it, cx, cz); if (sp) { it.x = sp[0]; it.z = sp[1]; place(it); } }
+  }
+  reapoyarTodo(); refreshWarnings(); changed(); renderPanel();
+  return { tipo, n: añadidos.length, gastado };
+}
+function panelAmueblar(ri) {
+  const d = document.createElement('details'); d.className = 'amueblar'; d.dataset.slot = 'auto'; if (openSlot === 'auto') d.open = true;
+  d.innerHTML = `<summary><span class="t">✨ Amueblar por mí</span><span class="p"></span><span class="e">Una propuesta completa para empezar, según estilo y presupuesto</span></summary>
+    <div class="cuerpo"><div class="estilos">${Object.entries(ESTILOS).map(([k, e], i) => `<button data-e="${k}" class="${i === 0 ? 'sel' : ''}">${e.nombre}</button>`).join('')}</div>
+    <label class="campo">Presupuesto para esta habitación (€)<input type="number" id="autoPresu" value="1500" step="100" min="200"></label>
+    <label class="nota" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="autoNueva" checked> En una propuesta nueva (no toca la actual)</label>
+    <button class="boton fuerte" id="autoGo">Proponer muebles</button></div>`;
+  let est = 'claro'; d.querySelectorAll('.estilos button').forEach(b => b.onclick = () => { est = b.dataset.e; d.querySelectorAll('.estilos button').forEach(x => x.classList.toggle('sel', x === b)); });
+  d.querySelector('summary').addEventListener('click', () => { openSlot = d.open ? null : 'auto'; });
+  d.querySelector('#autoGo').onclick = () => {
+    const presu = Math.max(200, +d.querySelector('#autoPresu').value || 1500);
+    if (d.querySelector('#autoNueva').checked) { const pr = propuestasDe(ri), sig = 'ABCDE'.split('').find(l => !pr.guardadas[l] && l !== pr.activa); if (sig) cambiarPropuesta(ri, sig); }
+    const sal = amueblarPorMi(ri, est, presu); openSlot = null; renderPanel();
+    toast(sal.n ? `${sal.n} muebles propuestos (${euro(sal.gastado)}) · cámbialos o muévelos a tu gusto` : 'No he encontrado hueco para más muebles');
+  };
+  return d;
+}
+// ================= Deshacer / rehacer =================
+const historial = { pila: [], pos: -1, aplicando: false };
+function instantanea() {
+  if (!flat || historial.aplicando) return; const d = serialize(); delete d.actualizado; const j = JSON.stringify(d);
+  if (historial.pila[historial.pos] === j) return;
+  historial.pila = historial.pila.slice(0, historial.pos + 1); historial.pila.push(j); if (historial.pila.length > 80) historial.pila.shift(); historial.pos = historial.pila.length - 1; botonesHist();
+}
+function botonesHist() { $('undoBtn').disabled = historial.pos <= 0; $('redoBtn').disabled = historial.pos >= historial.pila.length - 1; }
+function irHist(paso) {
+  const k = historial.pos + paso; if (k < 0 || k >= historial.pila.length) return;
+  historial.pos = k; historial.aplicando = true; const sid = design?.sync, room = currentRoom;
+  const d = JSON.parse(historial.pila[k]); d.sync = sid; d.actualizado = new Date().toISOString(); applyDesign(d); setRoom(room, false);
+  historial.aplicando = false; save(); botonesHist(); toast(paso < 0 ? 'Deshecho' : 'Rehecho');
+}
+$('undoBtn').onclick = () => irHist(-1); $('redoBtn').onclick = () => irHist(1);
+addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName)) { e.preventDefault(); irHist(e.shiftKey ? 1 : -1); } if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); irHist(1); } });
+
+// ================= Propuestas A/B/C por habitación =================
+function estadoSala(d, ri) {
+  const r = flat.rooms[ri], pref = ri + '-';
+  return { nuevos: (d.nuevos || []).filter(n => n.room === ri), existentes: Object.fromEntries(Object.entries(d.existentes || {}).filter(([k]) => k.startsWith(pref))),
+    paredes: Object.fromEntries(Object.entries(d.paredes || {}).filter(([k]) => k.startsWith(pref))), suelo: d.suelos?.[ri] || null };
+}
+function conSala(d, ri, st) {
+  const pref = ri + '-', o = { ...d };
+  o.nuevos = [...(d.nuevos || []).filter(n => n.room !== ri), ...st.nuevos];
+  o.existentes = { ...Object.fromEntries(Object.entries(d.existentes || {}).filter(([k]) => !k.startsWith(pref))), ...st.existentes };
+  o.paredes = { ...Object.fromEntries(Object.entries(d.paredes || {}).filter(([k]) => !k.startsWith(pref))), ...st.paredes };
+  o.suelos = { ...(d.suelos || {}) }; if (st.suelo) o.suelos[ri] = st.suelo; else delete o.suelos[ri];
+  return o;
+}
+const costeSala = st => st.nuevos.reduce((a, n) => { const p = products.get(n.pid); if (!p || p.existing) return a; const f = finishOf(p, n.acabado); return a + (f?.price ?? p.price ?? 0); }, 0);
+function propuestasDe(ri) { design.propuestas = design.propuestas || {}; return design.propuestas[ri] = design.propuestas[ri] || { activa: 'A', guardadas: {} }; }
+function cambiarPropuesta(ri, letra) {
+  const pr = propuestasDe(ri), d = serialize(); pr.guardadas[pr.activa] = estadoSala(d, ri);
+  const nueva = !pr.guardadas[letra]; if (nueva) pr.guardadas[letra] = estadoSala(d, ri);
+  pr.activa = letra; const sid = design.sync, props = design.propuestas;
+  const nd = conSala(d, ri, pr.guardadas[letra]); nd.sync = sid; nd.propuestas = props; applyDesign(nd); design.propuestas = props; setRoom(ri, false); changed();
+  toast(nueva ? `Propuesta ${letra} creada como copia: cámbiala sin perder la otra` : `Propuesta ${letra}`);
+}
+function htmlPropuestas(ri) {
+  const pr = propuestasDe(ri), d = serialize(); pr.guardadas[pr.activa] = estadoSala(d, ri);
+  const letras = Object.keys(pr.guardadas).sort(), sig = 'ABCDE'.split('').find(l => !pr.guardadas[l]);
+  const box = document.createElement('div'); box.className = 'propuestas';
+  box.innerHTML = '<span class="nota" style="margin:0 4px 0 2px">Propuestas</span>' + letras.map(l => `<button data-l="${l}" class="${l === pr.activa ? 'sel' : ''}"><b>${l}</b><small>${euro(costeSala(pr.guardadas[l]))}</small></button>`).join('') + (sig ? `<button class="mas" data-l="${sig}" title="Nueva propuesta">＋</button>` : '');
+  box.querySelectorAll('button').forEach(b => b.onclick = () => { if (b.dataset.l !== pr.activa) cambiarPropuesta(ri, b.dataset.l); });
+  return box;
+}
+
+// ================= Avisos: pasos estrechos y puertas bloqueadas =================
+function distRect(A, B) {   // distancia aproximada entre dos rectángulos girados (0 si se tocan)
+  if (solapan(A, B)) return 0; let d = Infinity;
+  const esq = R => [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => [R.x + R.ax[0] * a * R.hw + R.az[0] * b * R.hd, R.z + R.ax[1] * a * R.hw + R.az[1] * b * R.hd]);
+  const dentro = (R, [px, pz]) => { const dx = px - R.x, dz = pz - R.z, u = dx * R.ax[0] + dz * R.ax[1], v = dx * R.az[0] + dz * R.az[1]; const cu = Math.max(-R.hw, Math.min(R.hw, u)), cv = Math.max(-R.hd, Math.min(R.hd, v)); return Math.hypot(u - cu, v - cv); };
+  for (const p of esq(A)) d = Math.min(d, dentro(B, p)); for (const p of esq(B)) d = Math.min(d, dentro(A, p)); return d;
+}
+function avisosSala(ri) {
+  const r = flat.rooms[ri], sol = items.filter(i => i.room === ri && esSolido(i) && i.elev < .5), out = [], nom = it => products.get(it.pid).name.split(/[,(]/)[0].trim();
+  const nuevo = it => !it.existing;
+  for (let i = 0; i < sol.length; i++) for (let j = i + 1; j < sol.length; j++) {
+    const a = sol[i], b = sol[j]; if (!nuevo(a) && !nuevo(b)) continue;
+    const d = distRect(rect(a), rect(b)); if (d > .08 && d < .6) out.push({ it: nuevo(a) ? a : b, t: `Paso estrecho: <b>${Math.round(d * 100)} cm</b> entre ${esc(nom(a))} y ${esc(nom(b))} (mejor 70 cm o más)` });
+  }
+  const mx = (r.box.x0 + r.box.x1) / 2, mz = (r.box.z0 + r.box.z1) / 2;
+  for (const pu of r.puertas || []) {
+    let nx = -pu.tz, nz = pu.tx; if ((mx - pu.x) * nx + (mz - pu.z) * nz < 0) { nx = -nx; nz = -nz; }
+    const zona = { x: pu.x + nx * pu.w * .5, z: pu.z + nz * pu.w * .5, ax: [pu.tx, pu.tz], az: [nx, nz], hw: pu.w / 2 - .02, hd: pu.w / 2 - .02 };
+    for (const it of sol) if (nuevo(it) && solapan(rect(it), zona)) out.push({ it, t: `<b>${esc(nom(it))}</b> queda delante de una puerta y no dejaría abrirla o pasar` });
+  }
+  return out;
+}
+
+// ================= Cotas del mueble seleccionado (distancia a las paredes) =================
+const cotasLineas = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: 0xb23a22, dashSize: .05, gapSize: .03, depthTest: false, transparent: true })); cotasLineas.renderOrder = 6; cotasLineas.visible = false; scene.add(cotasLineas);
+const cotasEl = []; let cotasClave = '';
+function rayoPared(r, ox, oz, dx, dz) { let best = Infinity; for (let i = 0; i < r.poly.length; i++) { const [ax, az] = r.poly[i], [bx, bz] = r.poly[(i + 1) % r.poly.length], ex = bx - ax, ez = bz - az, den = dx * ez - dz * ex; if (Math.abs(den) < 1e-9) continue; const t = ((ax - ox) * ez - (az - oz) * ex) / den, u = ((ax - ox) * dz - (az - oz) * dx) / den; if (t > 0 && u >= 0 && u <= 1) best = Math.min(best, t); } return best; }
+function actualizarCotas() {
+  const it = selected, ok = it && flat && viewMode !== 'fp' && !drag?.none && it.obj.visible;
+  if (!ok) { if (cotasLineas.visible) { cotasLineas.visible = false; cotasEl.forEach(e => e.style.display = 'none'); } return; }
+  const r = flat.rooms[it.room], { W, D } = it.obj.userData.size, c = Math.cos(it.rot), s = Math.sin(it.rot), y = r.floorY + .03, pts = [], labs = [];
+  for (const [dx, dz, h] of [[c, -s, W / 2], [-c, s, W / 2], [s, c, D / 2], [-s, -c, D / 2]]) {
+    const t = rayoPared(r, it.x, it.z, dx, dz); if (!isFinite(t)) continue; const gap = t - h; if (gap < .02 || gap > 6) continue;
+    const a = [it.x + dx * h, it.z + dz * h], b = [it.x + dx * t, it.z + dz * t]; pts.push(a[0], y, a[1], b[0], y, b[1]); labs.push([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, gap]);
+  }
+  const clave = pts.map(v => v.toFixed(3)).join(); if (clave !== cotasClave) { cotasClave = clave; cotasLineas.geometry.dispose(); cotasLineas.geometry = new THREE.BufferGeometry(); cotasLineas.geometry.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); cotasLineas.computeLineDistances(); }
+  cotasLineas.visible = pts.length > 0;
+  const rc = view.getBoundingClientRect(), v = new THREE.Vector3();
+  while (cotasEl.length < 4) { const e = document.createElement('div'); e.className = 'cota'; $('cotas').appendChild(e); cotasEl.push(e); }
+  cotasEl.forEach((e, k) => { const L = labs[k]; if (!L) { e.style.display = 'none'; return; } v.set(L[0], y, L[1]).project(camera); if (v.z > 1) { e.style.display = 'none'; return; }
+    e.style.display = 'block'; e.style.left = ((v.x + 1) / 2 * rc.width) + 'px'; e.style.top = ((1 - v.y) / 2 * rc.height) + 'px'; e.textContent = Math.round(L[2] * 100) + ' cm'; });
+}
+// ================= Hoja inferior (móvil) y menús =================
+const esMovil = () => matchMedia('(max-width: 760px)').matches;
+let hojaEstado = 'peek';
+function alturaHoja(e) {
+  const H = innerHeight, peek = $('asa').offsetHeight + $('panel').querySelector('header').offsetHeight + $('pie').offsetHeight + 4;
+  return e === 'lleno' ? Math.round(H * .88) : e === 'mitad' ? Math.round(H * .5) : Math.max(110, peek);
+}
+function ponerHoja(e, px) {
+  if (!esMovil()) { document.documentElement.style.setProperty('--hoja', '0px'); ajustarVista(); return; }
+  if (e) hojaEstado = e; const h = px ?? alturaHoja(hojaEstado);
+  document.documentElement.style.setProperty('--hoja', h + 'px'); ajustarVista();
+}
+function ajustarVista() {
+  const r = view.getBoundingClientRect(), w = Math.max(1, r.width), h = Math.max(1, r.height);
+  const tapa = esMovil() ? Math.min(h * .6, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hoja')) || 0) : 0;
+  camera.aspect = w / (h + tapa); camera.setViewOffset(w, h + tapa, 0, tapa, w, h); camera.updateProjectionMatrix();
+}
+{ const asa = $('asa'), cab = $('panel').querySelector('header'); let y0 = null, h0 = 0, t0 = 0, mov = false;
+  const ini = e => { if (!esMovil() || e.target.closest('button')) return; y0 = e.clientY; h0 = $('panel').offsetHeight; t0 = Date.now(); mov = false; $('panel').classList.add('arrastrando'); e.currentTarget.setPointerCapture(e.pointerId); };
+  const mueve = e => { if (y0 == null) return; const d = y0 - e.clientY; if (Math.abs(d) > 4) mov = true; ponerHoja(null, Math.min(innerHeight * .92, Math.max(90, h0 + d))); };
+  const fin = e => { if (y0 == null) return; $('panel').classList.remove('arrastrando'); const h = $('panel').offsetHeight, v = (y0 - e.clientY) / Math.max(1, Date.now() - t0); y0 = null;
+    if (!mov) return ponerHoja(hojaEstado === 'peek' ? 'mitad' : 'peek');
+    const ops = ['peek', 'mitad', 'lleno']; let e2 = ops.reduce((a, b) => Math.abs(alturaHoja(b) - h) < Math.abs(alturaHoja(a) - h) ? b : a);
+    if (v > .6) e2 = h < alturaHoja('mitad') ? 'mitad' : 'lleno'; else if (v < -.6) e2 = h > alturaHoja('mitad') ? 'mitad' : 'peek'; ponerHoja(e2); };
+  [asa, cab].forEach(el => { el.addEventListener('pointerdown', ini); el.addEventListener('pointermove', mueve); el.addEventListener('pointerup', fin); el.addEventListener('pointercancel', fin); }); }
+addEventListener('resize', () => ponerHoja());
+$('optBtn').onclick = e => { e.stopPropagation(); $('opciones').hidden = !$('opciones').hidden; };
+document.addEventListener('pointerdown', e => { if (!$('opciones').hidden && !e.target.closest('#opciones, #optBtn')) $('opciones').hidden = true; });
+$('selX').onclick = () => select(null);
+$('cambiarBtn').onclick = () => { if (!selected) return; openSlot = slotIdOf(selected); renderPanel(); if (esMovil()) { ponerHoja.porSel = true; ponerHoja('mitad'); } const el = document.querySelector(`details[data-slot="${openSlot}"]`); if (el) { el.open = true; el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } };
+$('selMasBtn').onclick = () => { $('selMas').hidden = !$('selMas').hidden; $('selMasBtn').classList.toggle('sel', !$('selMas').hidden); };
 // ================= Arranque =================
-resize();
+resize(); ponerHoja('peek');
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 $('verNote').textContent = 'Versión del planificador: ' + PLANNER_VERSION;
 if (!EN_APP) { const id = new URLSearchParams(location.search).get('piso'); if (id) abrirPisoVivo(id); }
-renderer.setAnimationLoop(() => { try { controls.update(); if (flat?.rooms && viewMode === '3d' && !ui.paredes) updateWalls(); if (selected) selBox.setFromObject(selected.obj); for (const b of presCajas) b.box.setFromObject(b.userData.it.obj); renderer.render(scene, camera); } catch (e) { if (!window.__errLoop) { window.__errLoop = 1; console.error(e); } } });
+renderer.setAnimationLoop(() => { try { controls.update(); if (flat?.rooms && viewMode === '3d' && !ui.paredes) updateWalls(); if (selected) selBox.setFromObject(selected.obj); actualizarCotas(); for (const b of presCajas) b.box.setFromObject(b.userData.it.obj); renderer.render(scene, camera); } catch (e) { if (!window.__errLoop) { window.__errLoop = 1; console.error(e); } } });
 window.__planner = { exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
 if (EN_APP) {
   $('webOnly').style.display = 'none'; $('closeBtn').hidden = false;
