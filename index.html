@@ -286,7 +286,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-8';
+const PLANNER_VERSION = '2026.11.18-9';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -990,7 +990,7 @@ function addItem(pid, room, x, z, rot = 0, opts = {}) {
 }
 const SOMBRA = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 8, 64, 64, 64);
   g.addColorStop(0, 'rgba(0,0,0,.55)'); g.addColorStop(.55, 'rgba(0,0,0,.28)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
-const sombraMat = new THREE.MeshBasicMaterial({ map: SOMBRA, transparent: true, depthWrite: false, opacity: .55, polygonOffset: true, polygonOffsetFactor: -2 });
+const sombraMat = new THREE.MeshBasicMaterial({ map: SOMBRA, transparent: true, depthWrite: false, opacity: .28, polygonOffset: true, polygonOffsetFactor: -2 });
 function sombraContacto(obj, p) {
   const s = obj.userData.size; if (!s || p.techo || /alfombra|cuadro|espejo|cortina|estor|radiador|guitarraPared/.test(p.fam || '') || p.kind === 'rug' || s.H < .05) return;
   const m = new THREE.Mesh(new THREE.PlaneGeometry(s.W * 1.25 + .1, s.D * 1.25 + .1), sombraMat); m.rotation.x = -Math.PI / 2; m.position.y = .004; m.renderOrder = -1; m.userData.sombra = true; m.raycast = () => {}; obj.add(m);
@@ -2070,7 +2070,7 @@ function actualizarCotas() {
 // Se pintan los mismos objetos con materiales toon sincronizados en cada fotograma (así no se toca nada del resto del código).
 let estiloDibujo = store.get('estilo') !== 'realista';
 // (sin línea de contorno)
-const RAMPA = (() => { const t = new THREE.DataTexture(new Uint8Array([185, 185, 185, 255, 222, 222, 222, 255, 255, 255, 255, 255]), 3, 1); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
+const RAMPA = (() => { const t = new THREE.DataTexture(new Uint8Array([218, 218, 218, 255, 238, 238, 238, 255, 255, 255, 255, 255]), 3, 1); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
 const toonDe = new WeakMap(), sinLinea = { visible: false }; const TONO_PARED = new THREE.Color('#f3dfc6');
 function aToon(m) {
   if (!m || m.isMeshToonMaterial || m.isLineBasicMaterial || m.isLineDashedMaterial || m.isPointsMaterial || m.isShaderMaterial) return m;
@@ -2086,9 +2086,7 @@ function aToon(m) {
 }
 const reales = [];
 function pintar() {
-  // en la vista de planta, lo que cuelga del techo se oculta para ver el suelo
-  const ocultos = viewMode === 'plan' ? items.filter(i => i.obj.visible && products.get(i.pid)?.techo) : []; ocultos.forEach(i => i.obj.visible = false);
-  try { pintarEscena(); } finally { ocultos.forEach(i => i.obj.visible = true); }
+  pintarEscena();
 }
 function pintarEscena() {
   if (!estiloDibujo) { renderer.render(scene, camera); return; }
@@ -2099,9 +2097,9 @@ function aplicarEstilo() {
   const n = ui.noche;
   if (estiloDibujo) {
     renderer.toneMapping = THREE.NoToneMapping;
-    if (!n) { scene.background = new THREE.Color('#efe4d3'); cielo.color.set('#fff0dc'); cielo.groundColor.set('#b58c69'); cielo.intensity = 1.55; sun.color.set('#ffd4a3'); sun.intensity = 2.2; }
+    if (!n) { scene.background = new THREE.Color('#efe4d3'); cielo.color.set('#fff0dc'); cielo.groundColor.set('#b58c69'); cielo.intensity = 2.3; sun.color.set('#ffd9ad'); sun.intensity = 1.35; }
     else { cielo.intensity = .35; }
-  } else { renderer.toneMapping = THREE.ACESFilmicToneMapping; if (!n) { scene.background = new THREE.Color(0xe7eaee); cielo.color.set(0xffffff); cielo.groundColor.set(0xcdb89a); cielo.intensity = 1; sun.color.set(0xfff3e0); sun.intensity = 2.4; } }
+  } else { renderer.toneMapping = THREE.ACESFilmicToneMapping; if (!n) { scene.background = new THREE.Color(0xe7eaee); cielo.color.set(0xffffff); cielo.groundColor.set(0xcdb89a); cielo.intensity = 1.6; sun.color.set(0xfff3e0); sun.intensity = 1.6; } }
   document.querySelectorAll('[data-estilo]').forEach(b => b.classList.toggle('sel', estiloDibujo));
 }
 // ================= Hoja inferior (móvil) y menús =================
