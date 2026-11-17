@@ -52,6 +52,7 @@
   #pie .tot { flex:1; } #pie .tot b { font-size:19px; font-variant-numeric:tabular-nums; } #pie .tot span { display:block; color:var(--suave); font-size:12px; }
   #pie button, .boton { border:1px solid var(--linea); background:#fff; padding:7px 11px; border-radius:999px; }
   .boton.fuerte { background:var(--tinta); color:#fff; border-color:var(--tinta); }
+  .pildora.fuerte { background:var(--acento); color:#fff; border-color:var(--acento); }
   #sel { position:absolute; left:12px; bottom:max(12px, env(safe-area-inset-bottom)); background:var(--velo); border-radius:16px; box-shadow:0 2px 14px rgba(0,0,0,.12); padding:10px 14px 12px; display:none; max-width:calc(100% - 24px); }
   #sel .g { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--acento); font-weight:700; }
   #sel .n { font-size:18px; font-weight:700; line-height:1.2; } #sel .d { font-size:12.5px; color:var(--suave); margin:2px 0 8px; }
@@ -108,14 +109,14 @@
 <script src="fotos_cuadros.js"></script>
 <script src="fotos_alfombras.js"></script>
 <script src="catalogo_plantas.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 <div id="app">
   <div id="vista">
     <div id="view"></div>
     <div id="barra">
-      <button class="pildora sel" data-vista="3d">Maqueta</button><button class="pildora" data-vista="plan">Planta</button>
+      <button class="pildora sel" data-vista="3d">Maqueta</button><button class="pildora" data-vista="plan">Planta</button><button class="pildora fuerte" id="arBtn" style="display:none">Ver en AR</button>
       <span class="sep"></span><span id="salas" style="display:contents"></span><span class="sep"></span>
       <button class="pildora" data-c="noche">Noche</button><button class="pildora" data-c="girar">Girar sola</button>
       <button class="pildora" data-c="paredes">Todas las paredes</button><button class="pildora" data-c="nube">Nube de puntos</button>
@@ -171,7 +172,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.17-24';
+const PLANNER_VERSION = '2026.11.17-25';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -1166,6 +1167,44 @@ function conmutar(c) {
   if (c === 'nube') { if (cloudObj) cloudObj.visible = ui.nube; else toast('Este piso no tiene nube de puntos'); }
 }
 document.querySelectorAll('[data-c]').forEach(b => b.onclick = () => conmutar(b.dataset.c));
+// ================= Realidad aumentada (solo en la app del iPhone) =================
+// Exporta lo nuevo de la habitación (muebles, decoración, paredes pintadas y una marca roja en lo que se quita) a USDZ
+// en las mismas coordenadas del escaneo; la app lo coloca sobre la habitación real reconociéndola con el mapa AR guardado.
+async function exportarAR() {
+  const { USDZExporter } = await import('three/addons/exporters/USDZExporter.js');
+  const sc = new THREE.Scene(), enSala = r => currentRoom < 0 || r === currentRoom;
+  for (const it of items) {
+    if (it.existing || !enSala(it.room)) continue;
+    const o = modelFor(products.get(it.pid), it.acabado); o.position.set(it.x, flat.rooms[it.room].floorY + it.elev, it.z); o.rotation.y = it.rot; sc.add(o);
+  }
+  const rojo = new THREE.MeshStandardMaterial({ color: '#e0453a', transparent: true, opacity: .28, roughness: 1, depthWrite: false });
+  flat.rooms.forEach((r, ri) => { if (!enSala(ri)) return;
+    for (const o of r.objects) { if (!items.some(i => i.replaces === o.key)) continue;
+      const m = modelFor(products.get(o.pid)); if (!m) continue; m.position.set(o.x, r.floorY, o.z); m.rotation.y = o.rot || 0; m.updateMatrixWorld(true);
+      const b = new THREE.Box3().setFromObject(m), sz = b.getSize(new THREE.Vector3()), c = b.getCenter(new THREE.Vector3());
+      const k = new THREE.Mesh(new THREE.BoxGeometry(sz.x + .02, sz.y + .02, sz.z + .02), rojo); k.position.copy(c); sc.add(k); }
+    for (const w of r.walls) { const col = design?.paredes?.[w.key]; if (!col) continue; const mat = new THREE.MeshStandardMaterial({ color: col, roughness: .95 });
+      for (const pz of w.pieces) { const k = new THREE.Mesh(pz.geometry, mat); k.position.copy(pz.position); k.quaternion.copy(pz.quaternion); k.scale.set(1, 1, .3); sc.add(k); } }
+  });
+  const reduc = new Map(), matR = new Map(), MAPAS = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap', 'alphaMap'];
+  const peq = t => { if (!t?.image || !(t.image.width > 256)) return t; if (!reduc.has(t)) { const k = 256 / Math.max(t.image.width, t.image.height), cv = document.createElement('canvas');
+      cv.width = Math.round(t.image.width * k); cv.height = Math.round(t.image.height * k); cv.getContext('2d').drawImage(t.image, 0, 0, cv.width, cv.height);
+      const n = t.clone(); n.image = cv; n.needsUpdate = true; reduc.set(t, n); } return reduc.get(t); };
+  sc.traverse(o => { if (!o.isMesh) return; if (Array.isArray(o.material)) o.material = o.material[0];
+    const m = o.material; if (!matR.has(m)) { const c = m.clone(); MAPAS.forEach(k => { if (c[k]) c[k] = peq(c[k]); }); matR.set(m, c); } o.material = matR.get(m); });
+  sc.updateMatrixWorld(true);
+  if (!sc.children.length) return null;
+  const bytes = await new USDZExporter().parse(sc);
+  return await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.readAsDataURL(new Blob([bytes], { type: 'model/vnd.usdz+zip' })); });
+}
+if (window.EN_APP) { const b = $('arBtn'); b.style.display = ''; b.onclick = async () => {
+  if (b.disabled) return; b.disabled = true; const t0 = b.textContent; b.textContent = 'Preparando…';
+  try { save(); const usdz = await exportarAR();
+    if (!usdz) toast(currentRoom < 0 ? 'Aún no hay nada nuevo en el piso' : 'Aún no hay nada nuevo en esta habitación');
+    else window.webkit.messageHandlers.realidadAumentada.postMessage({ usdz, habitacion: currentRoom >= 0 ? flat.rooms[currentRoom].name : 'Todo el piso' });
+  } catch (e) { toast('No se pudo preparar la realidad aumentada: ' + e.message); }
+  b.disabled = false; b.textContent = t0; }; }
+
 document.querySelectorAll('[data-vista]').forEach(b => b.onclick = () => { viewMode = b.dataset.vista; document.querySelectorAll('[data-vista]').forEach(x => x.classList.toggle('sel', x === b)); if (flat) frameCamera(currentRoom >= 0 ? roomBox(flat.rooms[currentRoom]) : flatBox(), viewMode); updateWalls(); });
 $('b-mas').onclick = () => $('hoja').classList.add('abierta'); $('hojaCerrar').onclick = () => $('hoja').classList.remove('abierta');
 $('hoja').onclick = e => { if (e.target.id === 'hoja') $('hoja').classList.remove('abierta'); };
@@ -1283,7 +1322,7 @@ $('demoBtn').onclick = async () => { try { const r = await fetch('demo.json'); a
 resize();
 $('verNote').textContent = 'Versión del planificador: ' + PLANNER_VERSION;
 renderer.setAnimationLoop(() => { try { controls.update(); if (flat?.rooms && viewMode === '3d' && !ui.paredes) updateWalls(); if (selected) selBox.setFromObject(selected.obj); renderer.render(scene, camera); } catch (e) { if (!window.__errLoop) { window.__errLoop = 1; console.error(e); } } });
-window.__planner = { loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
+window.__planner = { exportarAR: () => exportarAR(), loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
 if (EN_APP) {
   $('webOnly').style.display = 'none'; $('closeBtn').hidden = false;
   $('closeBtn').onclick = () => { save(); try { window.webkit.messageHandlers.cerrar.postMessage(''); } catch {} };
