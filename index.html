@@ -267,7 +267,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.17-29';
+const PLANNER_VERSION = '2026.11.17-30';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -481,7 +481,7 @@ function estiloGenerico(fam, tipo, dim) {
 }
 BRO_CATALOG.forEach(p => { p.acabados.forEach(a => { a.color = Object.values(a.colores || {})[0] || '#bbb'; }); products.set(p.id, p); });
 ['lackCentro', 'lisaboSilla'].forEach(id => products.delete(id));   // los de tu hermano están mejor modelados
-const FAM_LABEL = { sofa: 'Sofás', armchair: 'Sillones', coffee: 'Mesas de centro y auxiliares', dining: 'Mesas de comedor', chair: 'Sillas', bed: 'Camas', dresser: 'Cómodas y mesitas', storage: 'Estanterías y armarios', tvunit: 'Muebles de TV', desk: 'Escritorios y tocadores', wallshelf: 'Baldas de pared', lampPie: 'Lámparas de pie', lampMesa: 'Lámparas de mesa', lampTecho: 'Lámparas de techo', pouf: 'Pufs y reposapiés', bench: 'Bancos', side: 'Mesas auxiliares', bedside: 'Mesitas de noche', shelf: 'Librerías y estanterías', wardrobe: 'Armarios y vitrinas', rug: 'Alfombras', mirror: 'Espejos', cuadro: 'Cuadros y marcos', planta: 'Plantas', tele: 'Televisiones', otro: 'Otros' };
+const FAM_LABEL = { cortina: 'Cortinas y visillos', estor: 'Estores', radiador: 'Radiadores', guitarra: 'Guitarras', guitarraPared: 'Guitarras', sofa: 'Sofás', armchair: 'Sillones', coffee: 'Mesas de centro y auxiliares', dining: 'Mesas de comedor', chair: 'Sillas', bed: 'Camas', dresser: 'Cómodas y mesitas', storage: 'Estanterías y armarios', tvunit: 'Muebles de TV', desk: 'Escritorios y tocadores', wallshelf: 'Baldas de pared', lampPie: 'Lámparas de pie', lampMesa: 'Lámparas de mesa', lampTecho: 'Lámparas de techo', pouf: 'Pufs y reposapiés', bench: 'Bancos', side: 'Mesas auxiliares', bedside: 'Mesitas de noche', shelf: 'Librerías y estanterías', wardrobe: 'Armarios y vitrinas', rug: 'Alfombras', mirror: 'Espejos', cuadro: 'Cuadros y marcos', planta: 'Plantas', tele: 'Televisiones', otro: 'Otros' };
 function catalogGroups() {
   const by = {}; for (const p of products.values()) { if (p.existing) continue; const f = p.custom ? 'propios' : (p.fam || 'otro'); (by[f] = by[f] || []).push(p); }
   const order = [...Object.keys(FAM_LABEL), 'propios'];
@@ -551,7 +551,7 @@ function familyOf(p) {
     default: return 'otro';
   }
 }
-const RELATED = { storage: ['storage', 'shelf', 'wardrobe', 'dresser', 'tvunit'], shelf: ['shelf', 'storage', 'wardrobe'], wardrobe: ['wardrobe', 'storage', 'shelf'], tvunit: ['tvunit', 'storage', 'dresser'], dresser: ['dresser', 'bedside', 'storage'], bedside: ['bedside', 'dresser', 'side'], sofa: ['sofa', 'armchair'], armchair: ['armchair', 'sofa', 'pouf'], pouf: ['pouf', 'armchair'], coffee: ['coffee', 'side'], side: ['side', 'coffee', 'bedside'], dining: ['dining', 'desk'], desk: ['desk', 'dining'], chair: ['chair', 'bench'], bench: ['bench', 'chair'], rug: ['rug'], mirror: ['mirror', 'cuadro'], cuadro: ['cuadro', 'mirror'], planta: ['planta'], lampPie: ['lampPie', 'lampMesa'], lampMesa: ['lampMesa', 'lampPie'], lampTecho: ['lampTecho'] };
+const RELATED = { guitarra: ['guitarra', 'guitarraPared'], guitarraPared: ['guitarraPared', 'guitarra'], radiador: ['radiador'], storage: ['storage', 'shelf', 'wardrobe', 'dresser', 'tvunit'], shelf: ['shelf', 'storage', 'wardrobe'], wardrobe: ['wardrobe', 'storage', 'shelf'], tvunit: ['tvunit', 'storage', 'dresser'], dresser: ['dresser', 'bedside', 'storage'], bedside: ['bedside', 'dresser', 'side'], sofa: ['sofa', 'armchair'], armchair: ['armchair', 'sofa', 'pouf'], pouf: ['pouf', 'armchair'], coffee: ['coffee', 'side'], side: ['side', 'coffee', 'bedside'], dining: ['dining', 'desk'], desk: ['desk', 'dining'], chair: ['chair', 'bench'], bench: ['bench', 'chair'], rug: ['rug'], mirror: ['mirror', 'cuadro'], cuadro: ['cuadro', 'mirror'], planta: ['planta'], lampPie: ['lampPie', 'lampMesa'], lampMesa: ['lampMesa', 'lampPie'], lampTecho: ['lampTecho'] };
 // sugerencias: pocas y relevantes (misma familia, tamaño parecido, modelos más trabajados, un precio de cada rango)
 function sugerencias(fam, ref, n = 8) {
   const fams = RELATED[fam] || [fam], c = [...products.values()].filter(p => !p.existing && familyOf(p) === fams[0]);
@@ -559,7 +559,7 @@ function sugerencias(fam, ref, n = 8) {
   const sc = p => { let v = 0; if (p.propia) v += 6; if (!p.ikea) v += 3; if (!p.approx) v += 1; if (ref) { const d = Math.abs(p.w - ref.w) / Math.max(ref.w, 1) + Math.abs(p.d - ref.d) / Math.max(ref.d, 1) * .5; v -= d * 4; } if (/comb|juego|\+/i.test(p.name)) v -= 2; return v; };
   const ord = pool.map(p => [sc(p), p]).sort((a, b) => b[0] - a[0]).map(x => x[1]);
   const out = [], vistos = new Set();                                        // una sola medida por serie
-  for (const p of ord) { const serie = p.name.split(' ')[0]; if (vistos.has(serie)) continue; vistos.add(serie); out.push(p); if (out.length >= n) break; }
+  for (const p of ord) { const serie = p.generico ? p.id : p.name.split(' ')[0]; if (vistos.has(serie)) continue; vistos.add(serie); out.push(p); if (out.length >= n) break; }
   return out.sort((a, b) => (a.acabados?.[0]?.price ?? 0) - (b.acabados?.[0]?.price ?? 0));
 }
 const candidates = fam => { const fams = RELATED[fam] || [fam]; return [...products.values()].filter(p => !p.existing && fams.includes(familyOf(p))).sort((a, b) => fams.indexOf(familyOf(a)) - fams.indexOf(familyOf(b)) || (a.acabados?.[0]?.price ?? 0) - (b.acabados?.[0]?.price ?? 0)); };
@@ -930,7 +930,7 @@ function addItem(pid, room, x, z, rot = 0, opts = {}) {
   const it = { uid: opts.uid || CLI + uidSeq++, pid, acabado, room, x, z, rot, obj, existing: opts.existing || null, replaces: opts.replaces || null, elev, libre: !!opts.libre, fase: opts.fase || undefined };
   if (typeof it.uid === 'number') uidSeq = Math.max(uidSeq, it.uid + 1);
   sombraContacto(obj, p);
-  obj.userData.item = it; furnGroup.add(obj); items.push(it); if (opts.elev == null) apoyar(it, !opts.existing); place(it);
+  obj.userData.item = it; furnGroup.add(obj); items.push(it); if (opts.elev == null) apoyar(it, opts.existing ? false : 'nuevo'); place(it);
   return it;
 }
 const SOMBRA = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 8, 64, 64, 64);
@@ -1039,7 +1039,7 @@ function pegarPared(it) {
     if (!choca) break; const paso = (k % 2 ? -1 : 1) * (Math.floor(k / 2) + 1) * (W + .1); it.x += tx * paso; it.z += tz * paso; }
 }
 function apoyar(it, forzar = true) {
-  const p = products.get(it.pid); if (DE_VENTANA.has(p.fam) && forzar && !p.existing) { colgarEnVentana(it); return; }
+  const p = products.get(it.pid); if (DE_VENTANA.has(p.fam) && forzar && !p.existing) { if (forzar === 'nuevo') colgarEnVentana(it); else pegarPared(it); return; }
   if (DE_PARED.has(p.fam) && forzar && !p.existing) { pegarPared(it); return; }
   if (!esSobre(p) || it.libre) return;
   const { best, top } = soporteBajo(it), tele = p.cat === 'television' || p.kind === 'television';
@@ -1254,7 +1254,7 @@ function renderPanel() {
     const add = p => {
         const c = controls.target, it = addItem(p.id, r.i, c.x, c.z, 0); const spot = findSpot(it, c.x, c.z); if (spot) { it.x = spot[0]; it.z = spot[1]; apoyar(it); place(it); } else toast('No hay hueco libre: muévelo a mano');
         refreshWarnings(); changed(); openSlot = 'n' + it.uid; renderPanel(); select(it); toast(p.name + ' añadido'); };
-    const fillAdd = () => { if (body.dataset.lleno) return; body.dataset.lleno = 1; listaBuscable(body, [...['plP', 'plM', 'plG'].map(k => products.get(k)), ...['sofa', 'armchair', 'coffee', 'dining', 'chair', 'shelf', 'tvunit', 'bed', 'dresser', 'lampPie', 'cuadro', 'planta', 'cortina', 'estor'].flatMap(f => sugerencias(f, null, 2)), ...['rad10', 'guiA'].map(k => products.get(k))], add, 'add', true, () => false, todoCatalogo()); };
+    const fillAdd = () => { if (body.dataset.lleno) return; body.dataset.lleno = 1; listaBuscable(body, [...['plP', 'plM', 'plG'].map(k => products.get(k)), ...['sofa', 'armchair', 'coffee', 'dining', 'chair', 'shelf', 'tvunit', 'bed', 'dresser', 'lampPie', 'cuadro', 'planta', 'cortina', 'estor'].flatMap(f => sugerencias(f, null, 2)), ...['rad6', 'rad10', 'rad14', 'radV', 'toall', 'guiA', 'guiE', 'guiP'].map(k => products.get(k))], add, 'add', true, () => false, todoCatalogo()); };
     if (d.open) fillAdd();
     d.addEventListener('toggle', () => { if (d.open) { fillAdd(); openSlot = 'add'; } });
     el.appendChild(d);
