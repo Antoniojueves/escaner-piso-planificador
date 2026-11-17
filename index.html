@@ -285,7 +285,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-3';
+const PLANNER_VERSION = '2026.11.18-4';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -629,6 +629,12 @@ async function preloadModels() {
     } catch (e) { console.warn('No se pudo cargar', n, e); }
   }));
 }
+// Accesorios que no son muebles: fuera del catálogo
+for (const [id, p] of [...products]) if (!p.existing && !p.custom && /sujetalibros|organizador|separador de cajón|bandeja para cajón|tirador|pomo para|patas para/.test(p.name.toLowerCase())) products.delete(id);
+// Sofás: número de plazas del nombre y sofás cama sin brazos
+for (const p of products.values()) { if (p.fam !== 'sofa' || p.kind === 'glb' || !p.estilo || p.estilo.f !== 'sofa') continue; const n = p.name.toLowerCase(), m = /(\d)(?:[,.]5)? plazas|(\d) p\b/.exec(n);
+  if (m && !/esquin|rinconera|\bu\b|modular/.test(n)) p.estilo = { ...p.estilo, plazas: +(m[1] || m[2]) };
+  if (/lycksele|nyhamn|futón|futon/.test(n) || (/cama/.test(n) && /1 p/.test(n))) p.estilo = { ...p.estilo, brazos: 'no' }; }
 // Sofás en esquina y en U: forma y medidas aproximadas de la planta
 for (const p of products.values()) { if (p.fam !== 'sofa' || p.kind === 'glb') continue; const n = p.name.toLowerCase();
   if (/\bu\b|en u|forma de u/.test(n)) { p.forma = 'u'; p.w = Math.max(p.w, 300); p.d = Math.max(p.d, 200); }
@@ -640,6 +646,7 @@ for (const p of products.values()) { if (p.fam !== 'armchair' || p.kind === 'glb
 // Almacenaje según lo que dice el nombre (manda sobre el estilo de la serie)
 for (const p of products.values()) { if (p.kind === 'glb' || !['storage', 'wardrobe', 'dresser', 'shelf'].includes(p.fam)) continue; const n = p.name.toLowerCase();
   if (/perchero/.test(n)) p.estilo = { f: 'perchero' };
+  else if (/carrito/.test(n)) p.estilo = { f: 'libreria', abierta: true, ruedas: true };
   else if (/\barmario\b/.test(n) && !/combinaci|cajones/.test(n) && p.estilo?.f === 'comoda') p.estilo = { f: 'armario', puertas: Math.max(1, Math.round(p.w / 60)) };
   if (/oxberg/.test(n) && p.estilo && ['armario', 'combi', 'libreria'].includes(p.estilo.f)) p.estilo = { f: 'armario', vitrina: true, enteras: true, puertas: Math.max(1, Math.round(p.w / 40)) };
   if (/vitrina|puertas? de vidrio|puerta de cristal/.test(n) && p.estilo && ['armario', 'combi', 'libreria'].includes(p.estilo.f)) p.estilo = { ...p.estilo, f: 'armario', vitrina: true, enteras: p.estilo.enteras || /billy|oxberg/.test(n), puertas: Math.max(1, Math.round(p.w / 45)) }; }
