@@ -204,8 +204,9 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
       <button class="opt" data-c="girar"><span>↻</span>Girar sola</button>
       <button class="opt" data-c="paredes"><span>▥</span>Ver todas las paredes</button>
       <button class="opt" data-c="nube"><span>⁘</span>Nube de puntos del escaneo</button>
-      <button class="opt" data-estilo id="estiloBtn"><span>🎨</span>Estilo dibujo (sombreado plano y luz cálida)</button>
+      <button class="opt" data-estilo id="estiloBtn"><span>🎨</span>Estilo dibujo (sombreado plano)</button>
       <button class="opt" id="fotoBtn"><span>📷</span>Foto bonita de la vista</button>
+      <button class="opt" id="claudeBtn" hidden><span>✦</span>Revisar mis muebles con Claude</button>
       <div id="sueloBox" hidden><div class="subt" style="margin:10px 8px 6px">Suelo de esta habitación</div><div id="suelos"></div></div>
     </div>
     <div id="ayuda">Toca una habitación para entrar · arrastra los muebles para moverlos · arrastra el fondo para girar, pellizca para acercar</div>
@@ -286,7 +287,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-11';
+const PLANNER_VERSION = '2026.11.18-12';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -875,6 +876,24 @@ function cyl(g, rt, rb, h, m, x = 0, y = 0, z = 0, seg = 24) { const o = new THR
 function legs(g, W, D, H, m, r = .025, inset = .04) { for (const sx of [-1, 1]) for (const sz of [-1, 1]) bx(g, r * 2, H, r * 2, m, sx * (W / 2 - inset), 0, sz * (D / 2 - inset)); }
 const isWoody = c => { const k = new THREE.Color(c), hsl = {}; k.getHSL(hsl); return hsl.h > .04 && hsl.h < .14 && hsl.s > .15 && hsl.l > .15 && hsl.l < .8; };
 
+// Tus muebles: el modelo sale de lo que detecta el escaneo (tipo de sofá, de silla, de mesa, de armario…)
+function estiloEscaneo(p) {
+  const at = (p.attrs || []).join(' '), H = p.h / 100;
+  switch (p.cat) {
+    case 'sofa': return /singleSeat/.test(at) ? { kind: 'armchair' } : { kind: 'sofa', forma: /lShaped/.test(at) ? 'esquina' : undefined };
+    case 'chair': { const e = { f: 'silla', respaldo: 'aro' };
+      if (/ChairType\.stool|ChairBackType\.missing/.test(at) || (H < .85 && H > .55 && !/ChairBackType\.existing/.test(at) && p.w < 50)) e.respaldo = 'ninguno';
+      if (/ChairType\.swivel|ChairLegType\.star/.test(at)) e.patas = 'estrella';
+      if (/ChairArmType\.existing/.test(at) && e.respaldo !== 'ninguno') e.respaldo = 'tapizado';
+      return { kind: 'chair', estilo: e }; }
+    case 'table': { const e = { f: 'mesa', patas: 'cuadrada' }; if (/circularElliptic/.test(at)) { e.forma = Math.abs(p.w - p.d) < 12 ? 'redonda' : 'oval'; e.patas = 'pie'; } return { kind: 'table', estilo: e }; }
+    case 'storage': if (/StorageType\.shelf/.test(at)) return { kind: 'shelf', estilo: { f: 'libreria' } };
+      return H > 1.3 ? { kind: 'wardrobe', estilo: { f: 'armario' } } : { kind: 'dresser', estilo: { f: 'comoda', filas: Math.max(1, Math.min(5, Math.round(H / .25))) } };
+    case 'bed': return { kind: 'bed' };
+    case 'planta': return { kind: 'planta' };
+  }
+  return null;
+}
 function modelFor(p, acabado) {
   if (p.kind === 'glb' && glbCache.has(p.model)) {
     const g = new THREE.Group(), obj = glbCache.get(p.model).clone(true), f = finishOf(p, acabado), byMat = {};
@@ -885,12 +904,14 @@ function modelFor(p, acabado) {
     g.add(obj); g.userData.size = { W: p.w / 100, D: p.d / 100, H: p.h / 100 }; return g;
   }
   { // modelos detallados por estilo (muebles.js)
-    const EXK = { sofa: 'sofa', bed: 'bed', table: 'table', chair: 'chair', planta: 'planta' };
-    const at0 = (p.attrs || []).join(' ');
-    let k0 = p.existing ? EXK[p.cat] : p.kind;
-    if (p.existing && k0 === 'sofa' && /singleSeat/.test(at0)) k0 = 'armchair';
+    if (p.existing && p.modelo && products.get(p.modelo.pid) && !products.get(p.modelo.pid).existing) {   // identificado como un producto del catálogo
+      const m = modelFor(products.get(p.modelo.pid), p.modelo.acabado);
+      if ((p.backSign || -1) > 0) { const w = new THREE.Group(); m.rotation.y = Math.PI; w.add(m); w.userData.size = m.userData.size; return w; } return m;
+    }
+    const ee = p.existing ? estiloEscaneo(p) : null;
+    let k0 = p.existing ? ee?.kind : p.kind;
     if (k0) {
-      const f = finishOf(p, acabado), q = p.existing ? { ...p, id: '_ex', kind: k0 } : p;
+      const f = finishOf(p, acabado), q = p.existing ? { ...p, id: '_ex', kind: k0, estilo: p.estilo || ee.estilo, forma: p.forma || ee.forma } : p;
       const m = construirMueble(q, { ...(f || {}), color: colorOf(p, acabado) });
       if (m) { if (p.existing && (p.backSign || -1) > 0) { const w = new THREE.Group(); m.rotation.y = Math.PI; w.add(m); w.userData.size = m.userData.size; return w; } return m; }
     }
@@ -1178,8 +1199,8 @@ function select(it, openPanel = true) {
   $('selMas').hidden = true; $('selMasBtn').classList.remove('sel');
   const p = products.get(it.pid), f = finishOf(p, it.acabado);
   $('selG').textContent = p.existing ? 'Lo que ya tienes' : (it.replaces ? 'Sustituye a tu ' + (products.get('ex' + it.replaces)?.name || 'mueble') : 'Nuevo');
-  $('selName').textContent = p.name; if (f?.img) $('selFoto').setAttribute('src', f.img); else $('selFoto').removeAttribute('src'); if (f?.img) { $('selFoto').onclick = () => f.url && window.open(f.url, '_blank'); }
-  $('selInfo').textContent = p.existing ? `${p.w}×${p.d}×${p.h} cm · no suma al presupuesto` : `${f ? f.name + ' · ' : ''}${p.w}×${p.d}×${p.h} cm${p.approx ? ' (aprox.)' : ''} · ${euro(priceOf(it))}`;
+  $('selName').textContent = p.name; if (p.existing && p.fotoUrl) { $('selFoto').setAttribute('src', p.fotoUrl); $('selFoto').onclick = null; } else if (f?.img) $('selFoto').setAttribute('src', f.img); else $('selFoto').removeAttribute('src'); if (f?.img) { $('selFoto').onclick = () => f.url && window.open(f.url, '_blank'); }
+  $('selInfo').textContent = p.existing ? `${p.nota ? p.nota + ' · ' : ''}${p.w}×${p.d}×${p.h} cm · no suma al presupuesto` : `${f ? f.name + ' · ' : ''}${p.w}×${p.d}×${p.h} cm${p.approx ? ' (aprox.)' : ''} · ${euro(priceOf(it))}`;
   $('exEdit').style.display = p.existing ? 'block' : 'none';
   if (p.existing) { $('exW').value = p.w; $('exD').value = p.d; $('exH').value = p.h; $('exN').value = p.name; if (!$('exC').options.length) $('exC').innerHTML = Object.entries(CAT_ES).map(([k, v]) => `<option value="${k}">${v}</option>`).join(''); $('exC').value = p.cat; }
   $('elev').value = Math.round(it.elev * 100);
@@ -1440,7 +1461,7 @@ $('elevDown').onclick = () => { if (selected) { setElev(selected, selected.elev 
 $('elev').addEventListener('change', () => { if (selected) { setElev(selected, +$('elev').value || 0); changed(); } });
 ['exW', 'exD', 'exH', 'exN', 'exC'].forEach(id => $(id).addEventListener('change', () => {
   if (!selected) return; const p = products.get(selected.pid); if (!p.existing) return;
-  if ($('exN').value.trim()) p.name = $('exN').value.trim(); if ($('exC').value && $('exC').value !== p.cat) { p.cat = $('exC').value; p.estilo = undefined; }
+  if ($('exN').value.trim()) p.name = $('exN').value.trim(); if ($('exC').value && $('exC').value !== p.cat) { p.cat = $('exC').value; if (p.estiloPropio || p.cat !== 'planta') { p.estilo = undefined; p.estiloPropio = false; } p.modelo = undefined; }
   p.w = Math.max(5, +$('exW').value || p.w); p.d = Math.max(5, +$('exD').value || p.d); p.h = Math.max(5, +$('exH').value || p.h);
   rebuild(selected); select(selected, false); renderPanel(); changed();
 }));
@@ -1584,9 +1605,20 @@ $('addCustom').onclick = () => {
 };
 
 // ================= Diseño: guardar / cargar / sincronizar =================
+// Ajustes de tus muebles que viajan con el diseño (los pone la revisión con Claude o las fotos del escaneo)
+const AJUSTES_EX = ['estilo', 'color', 'color2', 'modelo', 'nota', 'forma', 'colorAjustado'];
+function aplicarAjustesEx(p, e) {
+  let ch = false; const set = (k, v) => { if (JSON.stringify(p[k] ?? null) !== JSON.stringify(v ?? null)) { p[k] = v ?? undefined; ch = true; } };
+  if (e.name && e.name !== p.name) set('name', e.name); if (e.cat && e.cat !== p.cat) set('cat', e.cat);
+  for (const k of ['w', 'd', 'h']) if (e[k] && e[k] !== p[k]) { p[k] = e[k]; ch = true; }
+  for (const k of AJUSTES_EX) if (k in e) set(k, e[k]);
+  if (e.estilo) p.estiloPropio = true;
+  return ch;
+}
 function serialize() {
   const ex = {};
-  flat.rooms.forEach(r => r.objects.forEach(o => { const p = products.get(o.pid), it = items.find(i => i.existing === o.key); ex[o.key] = { removed: !it, x: it?.x, z: it?.z, rot: it?.rot, elev: it?.elev, libre: it?.libre, name: p.name, cat: p.cat, w: p.w, d: p.d, h: p.h }; }));
+  flat.rooms.forEach(r => r.objects.forEach(o => { const p = products.get(o.pid), it = items.find(i => i.existing === o.key); ex[o.key] = { removed: !it, x: it?.x, z: it?.z, rot: it?.rot, elev: it?.elev, libre: it?.libre, name: p.name, cat: p.cat, w: p.w, d: p.d, h: p.h };
+    for (const k of AJUSTES_EX) if (p[k] != null && (k !== 'estilo' || p.estiloPropio)) ex[o.key][k] = p[k]; }));
   return { version: 2, proyecto: flat.name, actualizado: new Date().toISOString(),
     nuevos: items.filter(i => !i.existing).map(({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase }) => ({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase: fase || null })),
     existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {}, suelos: design?.suelos || {}, propuestas: design?.propuestas || {}, sync: design?.sync || null };
@@ -1596,7 +1628,7 @@ function applyDesign(d) {
   (d?.propios || []).forEach(p => { if (!p.acabados) p.acabados = [{ id: 'propio', name: 'Propio', color: p.color || '#c9c2b4', price: p.price || 0, url: p.url || null }]; products.set(p.id, p); });
   flat.rooms.forEach(r => r.objects.forEach(o => {
     const e = d?.existentes?.[o.key], p = products.get(o.pid);
-    if (e) { if (e.name) p.name = e.name; if (e.cat) p.cat = e.cat; if (e.w) { p.w = e.w; p.d = e.d; p.h = e.h; } }
+    if (e) aplicarAjustesEx(p, e);
     if (e?.removed) return;
     addItem(o.pid, r.i, e?.x ?? o.x, e?.z ?? o.z, e?.rot ?? o.rot, e?.elev != null ? { existing: o.key, elev: e.elev, libre: e.libre } : { existing: o.key, y: o.y });
   }));
@@ -1655,6 +1687,7 @@ function aplicarRemoto(d) {
   (d.propios || []).forEach(p => { if (!products.has(p.id)) { if (!p.acabados) p.acabados = [{ id: 'propio', name: 'Propio', color: p.color || '#c9c2b4', price: p.price || 0, url: p.url || null }]; products.set(p.id, p); gridCache = null; cambio = true; } });
   flat.rooms.forEach(r => r.objects.forEach(o => {
     const e = d.existentes?.[o.key]; if (!e) return; const it = items.find(i => i.existing === o.key);
+    if (aplicarAjustesEx(products.get(o.pid), e)) { if (it) rebuild(it); cambio = true; }
     if (e.removed) { if (it) { removeItem(it); cambio = true; } return; }
     if (!it) { addItem(o.pid, r.i, e.x ?? o.x, e.z ?? o.z, e.rot ?? o.rot, { existing: o.key, elev: e.elev ?? 0, libre: e.libre }); cambio = true; return; }
     if (drag?.it !== it && e.x != null && moverA(it, e)) cambio = true;
@@ -2141,9 +2174,49 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.se
 $('verNote').textContent = 'Versión del planificador: ' + PLANNER_VERSION;
 if (!EN_APP) { const id = new URLSearchParams(location.search).get('piso'); if (id) abrirPisoVivo(id); }
 renderer.setAnimationLoop(() => { try { controls.update(); if (flat?.rooms && viewMode === '3d' && !ui.paredes) updateWalls(); if (selected) selBox.setFromObject(selected.obj); actualizarCotas(); for (const b of presCajas) b.box.setFromObject(b.userData.it.obj); pintar(); } catch (e) { if (!window.__errLoop) { window.__errLoop = 1; console.error(e); } } });
-window.__planner = { exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
+// ================= Tus muebles: fotos del escaneo y revisión con Claude =================
+// Color dominante de la foto recortada de un mueble (zona central, k-medias)
+async function colorDominante(url) {
+  const bm = await createImageBitmap(await (await fetch(url)).blob()), S = 40, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const cx = cv.getContext('2d'); cx.drawImage(bm, 0, 0, S, S); const d = cx.getImageData(0, 0, S, S).data, px = [];
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { const dx = (x + .5) / S - .5, dy = (y + .5) / S - .5, w = Math.exp(-(dx * dx + dy * dy) / .045); if (w < .15) continue; const i = (y * S + x) * 4; px.push([d[i], d[i + 1], d[i + 2], w]); }
+  if (px.length < 10) return null;
+  let cs = [0, .25, .5, .75].map(t => px[Math.floor(t * (px.length - 1))].slice(0, 3));
+  for (let k = 0; k < 10; k++) { const acc = cs.map(() => [0, 0, 0, 0]);
+    for (const p of px) { let b = 0, bd = Infinity; cs.forEach((c, j) => { const dd = (c[0] - p[0]) ** 2 + (c[1] - p[1]) ** 2 + (c[2] - p[2]) ** 2; if (dd < bd) { bd = dd; b = j; } }); const a = acc[b]; a[0] += p[0] * p[3]; a[1] += p[1] * p[3]; a[2] += p[2] * p[3]; a[3] += p[3]; }
+    cs = acc.map((a, j) => a[3] ? [a[0] / a[3], a[1] / a[3], a[2] / a[3], a[3]] : [...cs[j].slice(0, 3), 0]); }
+  cs.sort((a, b) => b[3] - a[3]); return colHex(cs[0].slice(0, 3));
+}
+async function coloresDeFotos(base) {
+  if (!flat?.data?.habitaciones) return; let n = 0;
+  for (const [ri, h] of flat.data.habitaciones.entries()) for (const [oi, o] of (h.objetos || []).entries()) {
+    const f = o.fotos?.[0], key = ri + '-' + oi, p = products.get('ex' + key); if (!f || !p) continue;
+    p.fotoUrl = base + f;
+    if (p.colorAjustado || p.modelo) continue;
+    const c = await colorDominante(p.fotoUrl).catch(() => null); if (!c || c === p.color) continue;
+    p.color = c; const it = items.find(i => i.existing === key); if (it) rebuild(it); n++;
+  }
+  if (n) { if (selected) select(selected); changed(); }
+}
+function listarExistentes() {
+  return flat.rooms.flatMap(r => r.objects.map(o => { const p = products.get(o.pid), it = items.find(i => i.existing === o.key);
+    return { key: o.key, habitacion: r.name, nombre: p.name, cat: p.cat, atributos: p.attrs, w: p.w, d: p.d, h: p.h, color: p.color, estilo: p.estiloPropio ? p.estilo : undefined, modelo: p.modelo, nota: p.nota, quitado: !it }; }));
+}
+// Para la revisión desde un chat: cambia cómo se ve uno de tus muebles (se guarda y se sincroniza solo)
+function editarExistente(key, c) {
+  const o = flat.rooms.flatMap(r => r.objects).find(o => o.key === key); if (!o) throw new Error('No hay ningún mueble ' + key);
+  const p = products.get(o.pid); c = { ...c };
+  if (c.modelo) { const q = products.get(c.modelo.pid); if (!q || q.existing) throw new Error('Producto no encontrado: ' + c.modelo.pid); c = { w: q.w, d: q.d, h: q.h, ...c }; }
+  if ('color' in c) c.colorAjustado = true;
+  aplicarAjustesEx(p, c); const it = items.find(i => i.existing === key); if (it) { rebuild(it); if (selected === it) select(it); }
+  changed(); return listarExistentes().find(x => x.key === key);
+}
+const buscarCatalogo = (t, n = 20) => { const q = t.toLowerCase().split(/\s+/).filter(Boolean); return [...products.values()].filter(p => !p.existing && q.every(w => p.name.toLowerCase().includes(w))).slice(0, n).map(p => ({ pid: p.id, nombre: p.name, fam: familyOf(p), w: p.w, d: p.d, h: p.h, acabados: (p.acabados || []).map(a => ({ id: a.id, nombre: a.name })) })); };
+$('claudeBtn').onclick = () => { if (!flat) return; $('opciones').hidden = true;
+  try { window.webkit.messageHandlers.revisarClaude.postMessage(JSON.stringify({ piso: flat.name, enlace: enlacePiso(), muebles: listarExistentes() })); toast('Preparando el paquete para Claude…'); } catch { toast('Esto se hace desde la app del iPhone'); } };
+window.__planner = { existentes: listarExistentes, editarExistente, buscarCatalogo, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
 if (EN_APP) {
-  $('webOnly').style.display = 'none'; $('closeBtn').hidden = false;
+  $('webOnly').style.display = 'none'; $('closeBtn').hidden = false; $('claudeBtn').hidden = false;
   $('closeBtn').onclick = () => { save(); try { window.webkit.messageHandlers.cerrar.postMessage(''); } catch {} };
   const name = new URLSearchParams(location.search).get('proyecto');
   (async () => {
@@ -2152,6 +2225,7 @@ if (EN_APP) {
       let ply = null; if (piso.nube) { const r = await fetch(base + piso.nube); if (r.ok) ply = await r.arrayBuffer(); }
       let saved = null; try { const r = await fetch(base + 'diseno.json'); if (r.ok) saved = await r.json(); } catch {}
       await loadProject({ name, piso, ply, savedDesign: saved });
+      coloresDeFotos(base).catch(e => console.warn('fotos', e));
     } catch (e) { $('loadMsg').textContent = 'No se pudo abrir el piso: ' + e.message; }
   })();
 } else {
