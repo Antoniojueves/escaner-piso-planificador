@@ -286,7 +286,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-9';
+const PLANNER_VERSION = '2026.11.18-10';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -2077,7 +2077,7 @@ function aToon(m) {
   if (m.isMeshBasicMaterial) { m.userData.outlineParameters = sinLinea; return m; }
   let t = toonDe.get(m);
   if (!t) { t = new THREE.MeshToonMaterial({ gradientMap: RAMPA }); toonDe.set(m, t); }
-  t.color.copy(m.color || new THREE.Color('#fff')); if (m === wallMat) t.color.multiply(TONO_PARED); if (t.map !== (m.map || null)) { t.map = m.map || null; t.needsUpdate = true; }
+  t.color.copy(m.color || new THREE.Color('#fff')); if (t.map !== (m.map || null)) { t.map = m.map || null; t.needsUpdate = true; }
   if (t.alphaMap !== (m.alphaMap || null)) { t.alphaMap = m.alphaMap || null; t.needsUpdate = true; }
   t.transparent = m.transparent; t.opacity = m.opacity; t.side = m.side; t.depthWrite = m.depthWrite; t.visible = m.visible !== false;
   if (m.emissive) { t.emissive.copy(m.emissive); t.emissiveIntensity = m.emissiveIntensity ?? 1; }
@@ -2097,7 +2097,7 @@ function aplicarEstilo() {
   const n = ui.noche;
   if (estiloDibujo) {
     renderer.toneMapping = THREE.NoToneMapping;
-    if (!n) { scene.background = new THREE.Color('#efe4d3'); cielo.color.set('#fff0dc'); cielo.groundColor.set('#b58c69'); cielo.intensity = 2.3; sun.color.set('#ffd9ad'); sun.intensity = 1.35; }
+    if (!n) { scene.background = new THREE.Color('#eef0f2'); cielo.color.set('#ffffff'); cielo.groundColor.set('#d9d9d9'); cielo.intensity = 2.2; sun.color.set('#ffffff'); sun.intensity = 1.25; }   // luz blanca: colores tal cual
     else { cielo.intensity = .35; }
   } else { renderer.toneMapping = THREE.ACESFilmicToneMapping; if (!n) { scene.background = new THREE.Color(0xe7eaee); cielo.color.set(0xffffff); cielo.groundColor.set(0xcdb89a); cielo.intensity = 1.6; sun.color.set(0xfff3e0); sun.intensity = 1.6; } }
   document.querySelectorAll('[data-estilo]').forEach(b => b.classList.toggle('sel', estiloDibujo));
