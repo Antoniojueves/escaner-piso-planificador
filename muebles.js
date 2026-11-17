@@ -488,6 +488,10 @@ export function construir(p, acabado) {
       break; }
     case 'espejo': if (o.redondo || Math.abs(W - H) < .01 && /redond/.test(nombre)) { const fr = cil(g, .5, .5, .03, M(o.color2 || c), 0, 0, 0, 48); fr.scale.set(W, 1, H); fr.rotation.x = Math.PI / 2; fr.position.set(0, H / 2, -D / 2 + .015); const e = new THREE.Mesh(new THREE.CircleGeometry(.5, 48), vidrioEspejo()); e.scale.set(W - .04, H - .04, 1); e.position.set(0, H / 2, -D / 2 + .031); g.add(e); break; }
     { rcaja(g, W, H, .03, .01, M(o.color2 || c), 0, 0, -D / 2 + .015); const e = new THREE.Mesh(new THREE.PlaneGeometry(W - .06, H - .06), vidrioEspejo()); e.position.set(0, H / 2, -D / 2 + .031); g.add(e); break; }
+    case 'cortina': cortina(g, W, D, H, c, o); break;
+    case 'estor': estor(g, W, D, H, c, o); break;
+    case 'radiador': radiador(g, W, D, H, c, o); break;
+    case 'guitarra': guitarra(g, W, D, H, c, o); break;
     default: return null;
   }
   g.userData.size = { W, D, H };
@@ -694,4 +698,59 @@ function lampara(g, W, D, H, c, o) {
     case 'trabajo': { base(.07, .02); tubo(g, [[0, .02, 0], [0, H * .7, -.02], [0, H, .08], [0, H - .03, .18]], .008, met); const d = cono(g, .02, .05, .07, M(c, { madera: false, roughness: .4 }), 0, H - .1, .18, false); luz(0, H - .12, .18); break; }
     case 'clasica': default: { const sh = o.sh ?? Math.min(.35, H * .3); base(o.mesa ? R * .55 : .15); cil(g, .01, .01, H - sh * .7, met, 0, .03, 0, 8); cono(g, R * .85, R, sh, pant, 0, H - sh, 0); luz(0, H - sh * .5, 0); }
   }
+}
+
+
+// ---------- textiles de ventana, radiadores y guitarras ----------
+function telaPliegues(ancho, alto, pliegues, prof, mat) {
+  const geo = new THREE.PlaneGeometry(ancho, alto, Math.max(12, pliegues * 6), 1), pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) { const x = pos.getX(i); pos.setZ(i, Math.sin((x / ancho + .5) * Math.PI * 2 * pliegues) * prof); }
+  geo.computeVertexNormals(); const m = sombra(new THREE.Mesh(geo, mat)); return m;
+}
+function cortina(g, W, D, H, c, o) {   // barra con remates y uno o dos paños fruncidos (visillo: translúcido)
+  const metal = METAL(o.colorBarra || '#e9e7e2'), y = H - .03, z = -D / 2 + .035;
+  barra(g, [-W / 2 - .05, y, z], [W / 2 + .05, y, z], .011, metal); esfera(g, .022, metal, -W / 2 - .07, y, z); esfera(g, .022, metal, W / 2 + .07, y, z);
+  for (const x of [-W / 2 + .05, W / 2 - .05]) caja(g, .02, .03, .05, metal, x, y - .015, -D / 2 + .01);
+  const mat = new THREE.MeshStandardMaterial({ color: c, roughness: .95, side: THREE.DoubleSide, transparent: !!o.visillo, opacity: o.visillo ? .55 : 1, depthWrite: !o.visillo });
+  const alto = H - .07, paños = o.panos || 2;
+  if (paños === 1) { const m = telaPliegues(W, alto, Math.round(W * 6), .03, mat); m.position.set(0, alto / 2, z + .03); g.add(m); }
+  else for (const sg of [-1, 1]) { const pw = W * .3, m = telaPliegues(pw, alto, Math.max(4, Math.round(pw * 9)), .035, mat); m.position.set(sg * (W / 2 - pw / 2), alto / 2, z + .035); g.add(m);
+    if (o.alzapanos) { const t = new THREE.Mesh(new THREE.TorusGeometry(pw * .32, .012, 6, 20), M(c, { tela: true })); t.rotation.x = Math.PI / 2; t.scale.set(1, .6, 1); t.position.set(sg * (W / 2 - pw / 2), alto * .38, z + .035); g.add(t); } }
+}
+function estor(g, W, D, H, c, o) {     // cajón arriba, tela a medio bajar y barra inferior (plisado: en zigzag)
+  const caj = M(o.colorCaja || '#f1f0ec', { madera: false }), z = -D / 2 + .03, bajado = o.bajado ?? .62, alto = (H - .06) * bajado;
+  rcaja(g, W, .055, .055, .01, caj, 0, H - .055, z);
+  const mat = new THREE.MeshStandardMaterial({ color: c, roughness: .95, side: THREE.DoubleSide, transparent: !o.opaco, opacity: o.opaco ? 1 : .8 });
+  let tela;
+  if (o.plisado) { const geo = new THREE.PlaneGeometry(W - .02, alto, 1, Math.max(8, Math.round(alto / .025))), pos = geo.attributes.position; for (let i = 0; i < pos.count; i++) { const k = Math.round((pos.getY(i) / alto + .5) * alto / .025); pos.setZ(i, k % 2 ? .008 : -.008); } geo.computeVertexNormals(); tela = sombra(new THREE.Mesh(geo, mat)); }
+  else if (o.nocheDia) { const cv = document.createElement('canvas'); cv.width = 8; cv.height = 64; const x = cv.getContext('2d'); for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#ffffff' : 'rgba(255,255,255,.45)'; x.fillRect(0, i * 8, 8, 8); } const tx = new THREE.CanvasTexture(cv); tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(1, alto / .16); mat.map = tx; mat.alphaMap = tx; mat.transparent = true; mat.opacity = 1; tela = sombra(new THREE.Mesh(new THREE.PlaneGeometry(W - .02, alto), mat)); }
+  else { tela = sombra(new THREE.Mesh(new THREE.PlaneGeometry(W - .02, alto), mat)); }
+  tela.position.set(0, H - .055 - alto / 2, z + .005); g.add(tela);
+  caja(g, W - .02, .02, .015, M(o.colorCaja || '#e8e6e0', { madera: false }), 0, H - .055 - alto - .01, z + .005);
+  if (!o.plisado) { cil(g, .003, .003, Math.min(.5, alto), M('#cfcac0'), W / 2 - .05, H - .055 - Math.min(.5, alto), z + .03, 6); }
+}
+function radiador(g, W, D, H, c, o) {  // elementos de aluminio, o toallero de baño (dos tubos y barras)
+  const m = M(c || '#f3f3f1', { roughness: .45, metalness: .15, madera: false });
+  if (o.toallero) { for (const sx of [-1, 1]) cil(g, .016, .016, H, m, sx * (W / 2 - .02), 0, 0, 12); const n = Math.round(H / .07); for (let i = 1; i < n; i++) { const b = barra(g, [-W / 2 + .02, i * H / n, 0], [W / 2 - .02, i * H / n, 0], .01, m); } return; }
+  const n = Math.max(2, o.elementos || Math.round(W / .08)), paso = W / n;
+  for (let i = 0; i < n; i++) { const x = -W / 2 + paso * (i + .5); rcaja(g, paso - .008, H, D * .55, .01, m, x, 0, -D * .05); rcaja(g, paso * .5, H - .06, D, .008, m, x, .03, 0); }
+  for (const y of [.045, H - .045]) barra(g, [-W / 2 - .02, y, -D * .1], [W / 2 + .02, y, -D * .1], .014, m);
+  cil(g, .018, .018, .05, METAL('#c9c9c9'), W / 2 + .045, .01, 0, 12); esfera(g, .02, M('#ffffff', { madera: false }), W / 2 + .045, .07, 0);
+}
+function guitarra(g, W, D, H, c, o) {  // acústica o eléctrica, en soporte de suelo o colgada de la pared
+  const el = o.t === 'electrica', madera = M(o.colorCuerpo || c || (el ? '#8c1d1d' : '#c98a4a'), { madera: !el, roughness: el ? .3 : .5, metalness: el ? .1 : 0 }), mastil = M('#5a3a22', { madera: true }), oscuro = M('#1e1b18', { madera: false });
+  const largo = Math.min(H - (o.pared ? .05 : .08), 1.02), base = o.pared ? 0 : .08, cuerpo = largo * (el ? .42 : .48), grosor = el ? .045 : .1, ancho = el ? .33 : .38;
+  const sh = new THREE.Shape(), r1 = ancho * .5, r2 = ancho * .38, cy1 = cuerpo * .3, cy2 = cuerpo * .74;
+  sh.absellipse(0, cy1, r1, cuerpo * .32, Math.PI * 1.5, Math.PI * 3.5, false); 
+  const cuerpoGeo = new THREE.ExtrudeGeometry(sh, { depth: grosor, bevelEnabled: true, bevelThickness: .006, bevelSize: .006, bevelSegments: 2, curveSegments: 28 });
+  const k1 = sombra(new THREE.Mesh(cuerpoGeo, madera)); k1.position.set(0, base, -grosor / 2); g.add(k1);
+  const sh2 = new THREE.Shape(); sh2.absellipse(0, cy2, r2, cuerpo * .26, 0, Math.PI * 2, false);
+  const k2 = sombra(new THREE.Mesh(new THREE.ExtrudeGeometry(sh2, { depth: grosor, bevelEnabled: true, bevelThickness: .006, bevelSize: .006, bevelSegments: 2, curveSegments: 28 }), madera)); k2.position.set(0, base, -grosor / 2); g.add(k2);
+  if (!el) { const boca = new THREE.Mesh(new THREE.CircleGeometry(.045, 28), oscuro); boca.position.set(0, base + cy2 - cuerpo * .04, grosor / 2 + .0065); g.add(boca); caja(g, .1, .015, .012, mastil, 0, base + cuerpo * .2, grosor / 2 + .006); }
+  else { caja(g, .06, .02, .01, METAL('#c8c8c8'), 0, base + cuerpo * .45, grosor / 2 + .006); caja(g, .06, .02, .01, METAL('#c8c8c8'), 0, base + cuerpo * .62, grosor / 2 + .006); caja(g, .14, .03, .004, oscuro, -.04, base + cuerpo * .3, grosor / 2 + .006); }
+  const ini = base + cuerpo * .95, fin = base + largo - .17; caja(g, .05, fin - ini, .03, mastil, 0, ini, grosor * .2);
+  rcaja(g, .085, .17, .022, .01, oscuro, 0, fin, grosor * .15);
+  for (let i = 0; i < 6; i++) caja(g, .0012, fin - ini + cuerpo * .55, .001, METAL('#dcdcdc'), -.015 + i * .006, base + cuerpo * .4, grosor * .2 + .017);
+  if (o.pared) { caja(g, .07, .04, .05, oscuro, 0, largo - .02, -D / 2 + .025); }
+  else { const m = METAL('#262626'); barra(g, [-.18, 0, .12], [0, .45, -.04], .009, m); barra(g, [.18, 0, .12], [0, .45, -.04], .009, m); barra(g, [0, 0, -.2], [0, .45, -.04], .009, m); barra(g, [-.12, .1, .07], [.12, .1, .07], .012, M('#262626', { madera: false })); }
 }

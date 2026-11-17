@@ -176,6 +176,7 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
 <script src="fotos_cuadros.js"></script>
 <script src="fotos_alfombras.js"></script>
 <script src="catalogo_plantas.js"></script>
+<script src="catalogo_textil.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
@@ -266,7 +267,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.17-28';
+const PLANNER_VERSION = '2026.11.17-29';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -502,6 +503,24 @@ function catalogGroups() {
       elev: t === 'colgante' ? 150 : undefined, techo: t === 'colgante' || undefined,
       acabados: [{ id: 'v0', name: especie || 'Estándar', price: +price || 0, url: RUTA_FICHA + ruta, img: foto ? FOTO + foto + '_s3.jpg' : null, color: '#5b8550' }] });
   }
+  // Cortinas, visillos y estores de IKEA (catalogo_textil.js)
+  const colorTela = t => /blanc/.test(t) ? '#f4f2ec' : /hueso|crema|natural/.test(t) ? '#ece4d4' : /beige claro/.test(t) ? '#e3d8c4' : /beige/.test(t) ? '#d6c6a8' : /gris oscuro|antracita/.test(t) ? '#55585c' : /gris/.test(t) ? '#a9aaa8' : /verde oscuro/.test(t) ? '#3f5547' : /verde/.test(t) ? '#7d9a74' : /azul/.test(t) ? '#6b86a3' : /rosa/.test(t) ? '#e2b8b4' : /negro/.test(t) ? '#2a2a2a' : /marr|dorado/.test(t) ? '#9a7a55' : '#e8e2d6';
+  for (const [nombre, tipo, medida, fam, vars] of (window.CATALOGO_TEXTIL || [])) {
+    const [w, h] = ((medida || '').match(/(\d+)x(\d+)/) || [0, '140', '250']).slice(1).map(Number), t = (tipo || '').toLowerCase(), pack2 = /2 unidades/.test(t), id = 'tx' + hash(nombre + '|' + tipo + '|' + medida);
+    const W = fam === 'estor' ? w : Math.min(320, pack2 ? w * 1.25 : w * .9), H = fam === 'estor' ? Math.min(h, 200) : Math.min(h, 255);
+    products.set(id, { id, name: `${nombre} ${t}, ${medida}`, w: Math.round(W), d: fam === 'estor' ? 6 : 12, h: Math.round(H), kind: fam, fam, ikea: true, approx: fam === 'cortina',
+      estilo: fam === 'estor' ? { f: 'estor', plisado: /plisado|celular/.test(t), opaco: /opaco/.test(t), nocheDia: /noche/.test(t) } : { f: 'cortina', visillo: /visillo|red/.test(t), panos: pack2 ? 2 : (w >= 250 ? 1 : 2), alzapanos: /alzapa/.test(t) },
+      acabados: vars.map(([vn, price, ruta, foto], i) => ({ id: 'v' + i, name: (vn || 'Estándar').split('/')[0], price: +price || 0, url: RUTA_FICHA + ruta, img: foto ? FOTO + foto + '_s3.jpg' : null, color: colorTela(vn || '') })) });
+  }
+  // Elementos de la casa que no son de IKEA (sin precio): radiadores y guitarras
+  const GUI_A = [['natural', '#c98a4a'], ['sunburst', '#7a3d1c'], ['negra', '#1d1c1b']], GUI_E = [['roja', '#8c1d1d'], ['negra', '#1d1c1b'], ['blanca', '#ece9e2'], ['sunburst', '#6e3517']];
+  for (const [k, name, w, d, h, estilo, elev, fam, cols] of [
+    ['rad6', 'Radiador de aluminio, 6 elementos', 48, 10, 58, { f: 'radiador', elementos: 6 }, 12, 'radiador'], ['rad10', 'Radiador de aluminio, 10 elementos', 80, 10, 58, { f: 'radiador', elementos: 10 }, 12, 'radiador'],
+    ['rad14', 'Radiador de aluminio, 14 elementos', 112, 10, 58, { f: 'radiador', elementos: 14 }, 12, 'radiador'], ['radV', 'Radiador vertical de diseño', 45, 9, 160, { f: 'radiador', elementos: 6 }, 10, 'radiador'],
+    ['toall', 'Radiador toallero de baño', 50, 8, 120, { f: 'radiador', toallero: true }, 35, 'radiador'],
+    ['guiA', 'Guitarra acústica en soporte', 40, 45, 110, { f: 'guitarra', t: 'acustica' }, 0, 'guitarra', GUI_A], ['guiE', 'Guitarra eléctrica en soporte', 36, 45, 108, { f: 'guitarra', t: 'electrica' }, 0, 'guitarra', GUI_E],
+    ['guiP', 'Guitarra colgada en la pared', 40, 12, 105, { f: 'guitarra', t: 'acustica', pared: true }, 100, 'guitarraPared', GUI_A]])
+    products.set(k, { id: k, name, w, d, h, kind: fam, fam, generico: true, elev, estilo, acabados: (cols || [['blanco', '#f3f3f1']]).map(([n, c], i) => ({ id: 'v' + i, name: n[0].toUpperCase() + n.slice(1) + ' · sin precio', price: 0, color: c })) });
   // las plantas que ya tienes (el escaneo del iPhone no detecta plantas): sin precio
   for (const [k, n, w, h, t] of [['plP', 'pequeña', 25, 45, 'grandes'], ['plM', 'mediana', 45, 90, 'grandes'], ['plG', 'grande', 70, 170, 'arbol'], ['plC', 'colgante', 35, 70, 'colgante'], ['plS', 'de suelo alta (tipo palmera)', 60, 180, 'arbol']])
     products.set(k, { id: k, name: `Mi planta ${n}`, w, d: w, h, kind: 'planta', fam: 'planta', propia: true, estilo: { f: 'planta', t, palmera: /palmera/.test(n) }, techo: t === 'colgante' || undefined,
@@ -772,7 +791,7 @@ function buildFlat(data) {
       products.set(p.id, p); objects.push({ key, pid: p.id, x: pl.x, z: pl.z, rot: 0, y: pl.y, backSign: -1 });
     });
     const puertas = openings.filter(x => x.k !== 'window').map(({ o }) => { const fo = frame(o); return { x: fo.p.x, z: fo.p.z, tx: fo.ex.x, tz: fo.ex.z, w: fo.w }; });
-    const ventanas = openings.filter(x => x.k === 'window').map(({ o }) => { const fo = frame(o); return { x: fo.p.x, z: fo.p.z, w: fo.w, y0: fo.p.y - fo.h / 2 }; });
+    const ventanas = openings.filter(x => x.k === 'window').map(({ o }) => { const fo = frame(o); return { x: fo.p.x, z: fo.p.z, w: fo.w, y0: fo.p.y - fo.h / 2, y1: fo.p.y + fo.h / 2 }; });
     rooms.push({ i: ri, name: h.nombre || ('Habitación ' + (ri + 1)), floorY, height, poly, walls, floor, floorMat0: floorMat, puertas, ventanas, group: g, objects, box: { x0, x1, z0, z1 }, area: polyArea(poly) });
   });
   flat.rooms = rooms;
@@ -918,7 +937,7 @@ const SOMBRA = (() => { const c = document.createElement('canvas'); c.width = c.
   g.addColorStop(0, 'rgba(0,0,0,.55)'); g.addColorStop(.55, 'rgba(0,0,0,.28)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
 const sombraMat = new THREE.MeshBasicMaterial({ map: SOMBRA, transparent: true, depthWrite: false, opacity: .55, polygonOffset: true, polygonOffsetFactor: -2 });
 function sombraContacto(obj, p) {
-  const s = obj.userData.size; if (!s || p.techo || /alfombra|cuadro|espejo/.test(p.fam || '') || p.kind === 'rug' || s.H < .05) return;
+  const s = obj.userData.size; if (!s || p.techo || /alfombra|cuadro|espejo|cortina|estor|radiador|guitarraPared/.test(p.fam || '') || p.kind === 'rug' || s.H < .05) return;
   const m = new THREE.Mesh(new THREE.PlaneGeometry(s.W * 1.25 + .1, s.D * 1.25 + .1), sombraMat); m.rotation.x = -Math.PI / 2; m.position.y = .004; m.renderOrder = -1; m.userData.sombra = true; m.raycast = () => {}; obj.add(m);
 }
 // Suelo por habitación
@@ -969,7 +988,7 @@ function iman(it, x, z) {
   return [Math.round(x * 1000) / 1000, Math.round(z * 1000) / 1000];
 }
 // Colisiones entre muebles (planta de cada uno como rectángulo girado, con 1 cm de tolerancia)
-const esSolido = it => { const p = products.get(it.pid); return !!p && !esSobre(p) && !p.techo && !/alfombra|cuadro|espejo/.test(p.fam || '') && p.kind !== 'rug' && it.obj.userData.size.H > .05; };
+const esSolido = it => { const p = products.get(it.pid); return !!p && !esSobre(p) && !p.techo && !/alfombra|cuadro|espejo|cortina|estor|guitarraPared/.test(p.fam || '') && p.kind !== 'rug' && it.obj.userData.size.H > .05; };
 function rect(it, x = it.x, z = it.z, rot = it.rot, m = 0) { const { W, D } = it.obj.userData.size, c = Math.cos(rot), s = Math.sin(rot); return { x, z, ax: [c, -s], az: [s, c], hw: W / 2 + m, hd: D / 2 + m }; }
 function solapan(A, B) {
   for (const ax of [A.ax, A.az, B.ax, B.az]) {
@@ -997,7 +1016,15 @@ function soporteBajo(it, x = it.x, z = it.z) {
     if (Math.abs(lx) < W / 2 + m && Math.abs(lz) < D / 2 + m && o.elev + H > top) { top = o.elev + H; best = o; } }
   return { best, top, bloqueado };
 }
-const DE_PARED = new Set(['cuadro', 'mirror', 'wallshelf']);
+const DE_PARED = new Set(['cuadro', 'mirror', 'wallshelf', 'radiador', 'guitarraPared']);
+const DE_VENTANA = new Set(['cortina', 'estor', 'radiador']);
+// Cortinas y estores se cuelgan de la ventana más cercana; los radiadores van debajo de ella
+function colgarEnVentana(it) {
+  const r = flat.rooms[it.room], p = products.get(it.pid), v = (r.ventanas || []).slice().sort((a, b) => Math.hypot(a.x - it.x, a.z - it.z) - Math.hypot(b.x - it.x, b.z - it.z))[0];
+  if (v) { it.x = v.x; it.z = v.z; } pegarPared(it);
+  if (v && p.fam !== 'radiador') { const H = it.obj.userData.size.H; it.elev = p.fam === 'estor' ? Math.max(0, v.y1 + .06 - r.floorY - H) : Math.max(0, Math.min(r.height - H - .02, v.y1 + .18 - r.floorY - H)); }
+  place(it);
+}
 // cuadros, espejos y baldas se pegan a la pared más cercana, mirando hacia la habitación
 function pegarPared(it) {
   const r = flat.rooms[it.room], P = r.poly, D = it.obj.userData.size.D; let best = null;
@@ -1012,7 +1039,8 @@ function pegarPared(it) {
     if (!choca) break; const paso = (k % 2 ? -1 : 1) * (Math.floor(k / 2) + 1) * (W + .1); it.x += tx * paso; it.z += tz * paso; }
 }
 function apoyar(it, forzar = true) {
-  const p = products.get(it.pid); if (DE_PARED.has(p.fam) && forzar && !p.existing) { pegarPared(it); return; }
+  const p = products.get(it.pid); if (DE_VENTANA.has(p.fam) && forzar && !p.existing) { colgarEnVentana(it); return; }
+  if (DE_PARED.has(p.fam) && forzar && !p.existing) { pegarPared(it); return; }
   if (!esSobre(p) || it.libre) return;
   const { best, top } = soporteBajo(it), tele = p.cat === 'television' || p.kind === 'television';
   if (best) {
@@ -1226,7 +1254,7 @@ function renderPanel() {
     const add = p => {
         const c = controls.target, it = addItem(p.id, r.i, c.x, c.z, 0); const spot = findSpot(it, c.x, c.z); if (spot) { it.x = spot[0]; it.z = spot[1]; apoyar(it); place(it); } else toast('No hay hueco libre: muévelo a mano');
         refreshWarnings(); changed(); openSlot = 'n' + it.uid; renderPanel(); select(it); toast(p.name + ' añadido'); };
-    const fillAdd = () => { if (body.dataset.lleno) return; body.dataset.lleno = 1; listaBuscable(body, [...['plP', 'plM', 'plG'].map(k => products.get(k)), ...['sofa', 'armchair', 'coffee', 'dining', 'chair', 'shelf', 'tvunit', 'bed', 'dresser', 'lampPie', 'cuadro', 'planta'].flatMap(f => sugerencias(f, null, 2))], add, 'add', true, () => false, todoCatalogo()); };
+    const fillAdd = () => { if (body.dataset.lleno) return; body.dataset.lleno = 1; listaBuscable(body, [...['plP', 'plM', 'plG'].map(k => products.get(k)), ...['sofa', 'armchair', 'coffee', 'dining', 'chair', 'shelf', 'tvunit', 'bed', 'dresser', 'lampPie', 'cuadro', 'planta', 'cortina', 'estor'].flatMap(f => sugerencias(f, null, 2)), ...['rad10', 'guiA'].map(k => products.get(k))], add, 'add', true, () => false, todoCatalogo()); };
     if (d.open) fillAdd();
     d.addEventListener('toggle', () => { if (d.open) { fillAdd(); openSlot = 'add'; } });
     el.appendChild(d);
