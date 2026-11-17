@@ -103,6 +103,12 @@ body { -webkit-font-smoothing:antialiased; }
 .seg button { border:0; background:none; padding:7px 13px; border-radius:999px; white-space:nowrap; color:var(--suave); font-weight:550; }
 .seg button.sel { background:var(--tinta); color:#fff; } .seg button:disabled { opacity:.35; } #undoBtn, #redoBtn { font-size:17px; padding:5px 11px; }
 .avisos { display:grid; gap:6px; margin:6px 0 4px; } .aviso { background:#fff4ec; border:1px solid #f1d2bd; color:#7a3b1d; border-radius:10px; padding:7px 10px; font-size:12.5px; display:flex; gap:8px; align-items:flex-start; cursor:pointer; } .aviso b { font-weight:650; }
+.accionesSala { display:grid; gap:8px; margin:6px 0 4px; } .accionesSala .rojo { border:0; background:var(--acento); color:#fff; border-radius:12px; padding:11px 14px; font-weight:650; text-align:left; font-size:14.5px; box-shadow:0 2px 8px rgba(154,59,42,.25); } .accionesSala .rojo:active { transform:scale(.99); }
+.filas { display:grid; gap:6px; } .fila-m { display:grid; grid-template-columns:44px 1fr auto; gap:10px; align-items:center; text-align:left; background:#fff; border:1px solid var(--linea); border-radius:12px; padding:7px 10px 7px 7px; } .fila-m img, .fila-m i { width:44px; height:44px; object-fit:contain; border-radius:8px; display:block; } .fila-m i { border:1px solid rgba(0,0,0,.08); } .fila-m span { min-width:0; } .fila-m b { display:block; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .fila-m small { color:var(--suave); font-size:12px; } .fila-m em { font-style:normal; font-variant-numeric:tabular-nums; } .fila-m.quitado { opacity:.6; }
+.cabSel { padding:4px 0 6px; } .actual { display:flex; gap:10px; align-items:center; background:#fff; border:1px solid var(--acento); border-radius:12px; padding:8px; } .actual img, .actual i { width:54px; height:54px; object-fit:contain; border-radius:8px; flex:none; } .actual > div { flex:1; min-width:0; } .actual small { display:block; color:var(--acento); font-size:11px; letter-spacing:.05em; text-transform:uppercase; font-weight:700; } .actual b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .actual span { font-size:12.5px; color:var(--suave); } .cabSel .acabados { padding:8px 0 0; } .cabSel .buscar { margin:8px 0 0; } .cabSel a.boton { text-decoration:none; color:inherit; font-size:13px; }
+.catnav { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:6px 0 4px; } .catnav::-webkit-scrollbar { display:none; } .catnav button { flex:none; border:1px solid var(--linea); background:#fff; border-radius:999px; padding:5px 11px; font-size:12.5px; } .catnav button.sel { background:var(--tinta); color:#fff; border-color:var(--tinta); }
+.catsec h4 { margin:12px 2px 6px; font-size:13px; letter-spacing:.04em; text-transform:uppercase; color:var(--suave); } .catsec h4 small { font-weight:400; } .catsec[hidden], .tarj[hidden] { display:none; }
+.rejilla { display:grid; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); gap:7px; } .tarj { background:#fff; border:1px solid var(--linea); border-radius:12px; padding:6px 6px 7px; text-align:left; display:flex; flex-direction:column; gap:2px; content-visibility:auto; contain-intrinsic-size:104px 170px; } .tarj img, .tarj i { width:100%; aspect-ratio:1; object-fit:contain; border-radius:8px; display:block; background:#fff; } .tarj i { border:1px solid rgba(0,0,0,.06); } .tarj b { font-size:12px; font-weight:600; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; } .tarj small { font-size:10.5px; color:var(--suave); } .tarj em { font-style:normal; font-size:12px; font-variant-numeric:tabular-nums; margin-top:auto; } .tarj.sel { border-color:var(--acento); box-shadow:inset 0 0 0 1px var(--acento); }
 .estilos { display:flex; gap:6px; flex-wrap:wrap; } .estilos button { border:1px solid var(--linea); background:#fff; border-radius:999px; padding:6px 11px; } .estilos button.sel { background:var(--tinta); color:#fff; border-color:var(--tinta); }
 details.amueblar > summary .t { color:var(--acento); }
 .propuestas { display:flex; gap:6px; align-items:center; margin:2px 0 8px; flex-wrap:wrap; } .propuestas button { border:1px solid var(--linea); background:#fff; border-radius:10px; padding:5px 10px; display:flex; flex-direction:column; align-items:flex-start; line-height:1.15; min-width:64px; } .propuestas button small { color:var(--suave); font-size:11px; font-variant-numeric:tabular-nums; } .propuestas button.sel { border-color:var(--acento); box-shadow:inset 0 0 0 1px var(--acento); } .propuestas .mas { min-width:0; align-items:center; justify-content:center; color:var(--suave); }
@@ -148,6 +154,7 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
   #panel > * { flex-shrink:0; } #grupos { flex:1 1 auto; flex-shrink:1; }
   #sel, #pared { left:8px; right:8px; width:auto; bottom:calc(var(--hoja) + 10px); transition:bottom .28s cubic-bezier(.2,.8,.2,1); max-height:calc(100% - var(--hoja) - 80px); overflow:auto; }
   #toast { bottom:calc(var(--hoja) + 16px); }
+  #pie { flex-wrap:nowrap; } #pie button { padding:7px 10px; font-size:13px; white-space:nowrap; flex:none; } #pie .tot { min-width:0; }
   #pie .tot span { font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:42vw; }
   .envivo { top:calc(max(12px, env(safe-area-inset-top)) + 46px); }
   #barra { left:8px; right:8px; max-width:none; }
@@ -224,6 +231,15 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
     <div id="pie"><div class="tot"><b id="total">0 €</b><span id="totSub">total de lo nuevo</span></div><button id="b-copiar">🛒 Lista de compra</button><button id="b-mas">Más</button></div>
   </aside>
 </div>
+<div id="auto" class="modal"><div>
+  <div class="fila" style="justify-content:space-between"><h2>✨ Amueblar por mí</h2><button class="boton" id="autoCerrar">Cerrar</button></div>
+  <p class="nota" id="autoNota">Te propongo la habitación completa como punto de partida. Luego puedes cambiar cualquier cosa.</p>
+  <div class="subt">Estilo</div><div class="estilos" id="autoEstilos"></div>
+  <label class="campo" style="margin-top:10px">Presupuesto para esta habitación (€)<input type="number" id="autoPresu" value="1500" step="100" min="200"></label>
+  <label class="nota" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="autoTodo"> Cambiar también lo que ya tengo (sofá, cama, mesas, armarios…)</label>
+  <label class="nota" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="autoNueva" checked> Hacerlo en una propuesta nueva (no toca la actual)</label>
+  <button class="boton fuerte" id="autoGo" style="margin-top:10px;width:100%;padding:11px">Proponer muebles</button>
+</div></div>
 <div id="compra" class="modal"><div>
   <div class="fila" style="justify-content:space-between"><h2>Lista de la compra</h2><button class="boton" id="compraCerrar">Cerrar</button></div>
   <p class="nota">Todo lo nuevo del piso, por habitaciones. Marca qué compras ahora y qué más adelante: el total se reparte por fases. Toca un artículo para abrirlo en IKEA.</p>
@@ -267,7 +283,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.17-30';
+const PLANNER_VERSION = '2026.11.17-31';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -481,7 +497,7 @@ function estiloGenerico(fam, tipo, dim) {
 }
 BRO_CATALOG.forEach(p => { p.acabados.forEach(a => { a.color = Object.values(a.colores || {})[0] || '#bbb'; }); products.set(p.id, p); });
 ['lackCentro', 'lisaboSilla'].forEach(id => products.delete(id));   // los de tu hermano están mejor modelados
-const FAM_LABEL = { cortina: 'Cortinas y visillos', estor: 'Estores', radiador: 'Radiadores', guitarra: 'Guitarras', guitarraPared: 'Guitarras', sofa: 'Sofás', armchair: 'Sillones', coffee: 'Mesas de centro y auxiliares', dining: 'Mesas de comedor', chair: 'Sillas', bed: 'Camas', dresser: 'Cómodas y mesitas', storage: 'Estanterías y armarios', tvunit: 'Muebles de TV', desk: 'Escritorios y tocadores', wallshelf: 'Baldas de pared', lampPie: 'Lámparas de pie', lampMesa: 'Lámparas de mesa', lampTecho: 'Lámparas de techo', pouf: 'Pufs y reposapiés', bench: 'Bancos', side: 'Mesas auxiliares', bedside: 'Mesitas de noche', shelf: 'Librerías y estanterías', wardrobe: 'Armarios y vitrinas', rug: 'Alfombras', mirror: 'Espejos', cuadro: 'Cuadros y marcos', planta: 'Plantas', tele: 'Televisiones', otro: 'Otros' };
+const FAM_LABEL = { sofa: 'Sofás', armchair: 'Sillones', coffee: 'Mesas de centro y auxiliares', dining: 'Mesas de comedor', chair: 'Sillas', bed: 'Camas', dresser: 'Cómodas y mesitas', storage: 'Estanterías y armarios', tvunit: 'Muebles de TV', desk: 'Escritorios y tocadores', wallshelf: 'Baldas de pared', lampPie: 'Lámparas de pie', lampMesa: 'Lámparas de mesa', lampTecho: 'Lámparas de techo', pouf: 'Pufs y reposapiés', bench: 'Bancos', side: 'Mesas auxiliares', bedside: 'Mesitas de noche', shelf: 'Librerías y estanterías', wardrobe: 'Armarios y vitrinas', rug: 'Alfombras', mirror: 'Espejos', cuadro: 'Cuadros y marcos', planta: 'Plantas', tele: 'Televisiones', otro: 'Otros' , cortina: 'Cortinas y visillos', estor: 'Estores', radiador: 'Radiadores', guitarra: 'Guitarras', guitarraPared: 'Guitarras de pared' };
 function catalogGroups() {
   const by = {}; for (const p of products.values()) { if (p.existing) continue; const f = p.custom ? 'propios' : (p.fam || 'otro'); (by[f] = by[f] || []).push(p); }
   const order = [...Object.keys(FAM_LABEL), 'propios'];
@@ -1117,7 +1133,7 @@ function select(it, openPanel = true) {
   sync?.seleccion(it ? slotIdOf(it) : null);
   if (it && paredSel) cerrarPared();
   selected = it; const panel = $('sel');
-  if (!it) { panel.style.display = 'none'; selBox.visible = false; if (esMovil() && hojaEstado === 'mitad' && ponerHoja.porSel) { ponerHoja.porSel = false; ponerHoja('peek'); } return; }
+  if (!it) { panel.style.display = 'none'; selBox.visible = false; renderPanel(); if (esMovil() && hojaEstado === 'mitad' && ponerHoja.porSel) { ponerHoja.porSel = false; ponerHoja('peek'); } return; }
   $('selMas').hidden = true; $('selMasBtn').classList.remove('sel');
   const p = products.get(it.pid), f = finishOf(p, it.acabado);
   $('selG').textContent = p.existing ? 'Lo que ya tienes' : (it.replaces ? 'Sustituye a tu ' + (products.get('ex' + it.replaces)?.name || 'mueble') : 'Nuevo');
@@ -1127,7 +1143,7 @@ function select(it, openPanel = true) {
   if (p.existing) { $('exW').value = p.w; $('exD').value = p.d; $('exH').value = p.h; $('exN').value = p.name; if (!$('exC').options.length) $('exC').innerHTML = Object.entries(CAT_ES).map(([k, v]) => `<option value="${k}">${v}</option>`).join(''); $('exC').value = p.cat; }
   $('elev').value = Math.round(it.elev * 100);
   panel.style.display = 'block'; selBox.setFromObject(it.obj); selBox.visible = true; refreshWarnings();
-  if (openPanel) { openSlot = slotIdOf(it); renderPanel(); const el = document.querySelector(`details[data-slot="${openSlot}"]`); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  panelModo = null; renderPanel();
 }
 function refreshWarnings() {
   for (const it of items) { if (products.get(it.pid).existing) continue; const out = penalty(it) > 0; it.obj.traverse(o => { if (o.isMesh) { if (Array.isArray(o.material) || !o.material.emissive) return; if (!o.userData.own) { o.material = o.material.clone(); o.userData.own = true; } o.material.emissive.set(out ? '#6a1a00' : '#000'); } }); }
@@ -1177,7 +1193,7 @@ function abrirPared(k) {
 }
 function cerrarPared() { if (paredSel) marcarPared(paredSel, false); paredSel = null; $('pared').style.display = 'none'; }
 function setRoom(i, reframe = true) {
-  cerrarPared(); currentRoom = i; select(null); openSlot = null;
+  cerrarPared(); currentRoom = i; panelModo = null; select(null); openSlot = null;
   document.querySelectorAll('#salas button').forEach(b => b.classList.toggle('sel', +b.dataset.r === i));
   flat.rooms.forEach(r => { const dim = i >= 0 && r.i !== i; r.group.traverse(o => { if (o.isMesh) { if (!o.userData.baseMat) o.userData.baseMat = o.material; const base = o.userData.pared ? (paredMats.get(o.userData.pared) || wallMat) : o.userData.baseMat; o.material = dim ? dimMat(base) : base; } }); });
   items.forEach(it => it.obj.visible = i < 0 || it.room === i);
@@ -1230,8 +1246,10 @@ function totals() {
   items.forEach(it => { const v = priceOf(it); if (!products.get(it.pid).existing && it.fase !== '0') { perRoom[it.room] += v; n++; } });
   return { perRoom, total: perRoom.reduce((a, b) => a + b, 0), n };
 }
+let ultimoPanel = '';
 function renderPanel() {
-  const el = $('grupos'); el.innerHTML = ''; if (!flat) return;
+  const el = $('grupos'), clave = (selected ? slotIdOf(selected) : '') + '|' + panelModo + '|' + currentRoom, st = el.scrollTop; el.innerHTML = ''; if (!flat) return;
+  requestAnimationFrame(() => { if (clave === ultimoPanel) el.scrollTop = st; else el.scrollTop = 0; ultimoPanel = clave; });
   const T = totals();
   if (currentRoom < 0) {
     $('h1').textContent = 'Amueblar mi piso'; $('hp').textContent = `${flat.rooms.length} habitaciones · ${flat.rooms.reduce((a, r) => a + r.area, 0).toFixed(1)} m². Toca una habitación para amueblarla.`;
@@ -1241,23 +1259,29 @@ function renderPanel() {
       d.querySelector('summary').onclick = e => { e.preventDefault(); setRoom(r.i); };
       el.appendChild(d);
     });
+  } else if (selected || panelModo === 'añadir') {
+    panelCatalogo(el);
   } else {
     const r = flat.rooms[currentRoom];
-    $('h1').textContent = r.name; $('hp').textContent = 'Toca cada mueble para cambiarlo por otro modelo o acabado, o quítalo. Toca una pared para cambiar su color. Lo que ya tienes no suma al total.';
-    el.appendChild(htmlPropuestas(r.i)); el.appendChild(panelAmueblar(r.i));
+    $('h1').textContent = r.name; $('hp').textContent = 'Toca un mueble (aquí o en el 3D) para cambiarlo. Toca una pared para cambiar su color. Lo que ya tienes no suma al total.';
+    el.appendChild(htmlPropuestas(r.i));
+    const acc = document.createElement('div'); acc.className = 'accionesSala';
+    acc.innerHTML = '<button class="rojo" id="btnAuto">✨ Amueblar por mí</button><button class="rojo" id="btnAdd">＋ Añadir mueble</button>';
+    acc.querySelector('#btnAuto').onclick = () => abrirAuto(r.i);
+    acc.querySelector('#btnAdd').onclick = () => { panelModo = 'añadir'; renderPanel(); $('grupos').scrollTop = 0; if (esMovil() && hojaEstado === 'peek') ponerHoja('mitad'); };
+    el.appendChild(acc);
     const av = avisosSala(r.i); if (av.length) { const box = document.createElement('div'); box.className = 'avisos'; av.slice(0, 4).forEach(a => { const d = document.createElement('div'); d.className = 'aviso'; d.innerHTML = '⚠️ <span>' + a.t + '</span>'; d.onclick = () => select(a.it); box.appendChild(d); }); el.appendChild(box); }
-    for (const slot of slotItems(r.i)) el.appendChild(slotGroup(slot));
-    // añadir
-    const d = document.createElement('details'); d.dataset.slot = 'add'; if (openSlot === 'add') d.open = true;
-    d.innerHTML = `<summary><span class="t">Añadir un mueble</span><span class="p"></span><span class="e">Catálogo de IKEA y tus muebles propios</span></summary><div class="cuerpo"></div>`;
-    const body = d.querySelector('.cuerpo');
-    const add = p => {
-        const c = controls.target, it = addItem(p.id, r.i, c.x, c.z, 0); const spot = findSpot(it, c.x, c.z); if (spot) { it.x = spot[0]; it.z = spot[1]; apoyar(it); place(it); } else toast('No hay hueco libre: muévelo a mano');
-        refreshWarnings(); changed(); openSlot = 'n' + it.uid; renderPanel(); select(it); toast(p.name + ' añadido'); };
-    const fillAdd = () => { if (body.dataset.lleno) return; body.dataset.lleno = 1; listaBuscable(body, [...['plP', 'plM', 'plG'].map(k => products.get(k)), ...['sofa', 'armchair', 'coffee', 'dining', 'chair', 'shelf', 'tvunit', 'bed', 'dresser', 'lampPie', 'cuadro', 'planta', 'cortina', 'estor'].flatMap(f => sugerencias(f, null, 2)), ...['rad6', 'rad10', 'rad14', 'radV', 'toall', 'guiA', 'guiE', 'guiP'].map(k => products.get(k))], add, 'add', true, () => false, todoCatalogo()); };
-    if (d.open) fillAdd();
-    d.addEventListener('toggle', () => { if (d.open) { fillAdd(); openSlot = 'add'; } });
-    el.appendChild(d);
+    el.insertAdjacentHTML('beforeend', '<div class="subt" style="margin:12px 4px 6px">En esta habitación</div>');
+    const lista = document.createElement('div'); lista.className = 'filas';
+    for (const slot of slotItems(r.i)) {
+      const cur = slot.current, cp = cur ? products.get(cur.pid) : null, own = slot.type === 'ex' ? products.get(slot.o.pid) : null, f = cur && !cp.existing ? finishOf(cp, cur.acabado) : null;
+      const b = document.createElement('button'); b.className = 'fila-m' + (!cur ? ' quitado' : '');
+      const sub = !cur ? 'Quitado · toca para recuperarlo' : cp.existing ? `Lo que ya tienes · ${cp.w}×${cp.d}×${cp.h} cm` : (slot.type === 'ex' ? `Sustituye a tu ${own.name.toLowerCase()}` : 'Nuevo') + (f ? ' · ' + f.name : '');
+      b.innerHTML = `${f?.img ? `<img loading="lazy" src="${f.img}" alt="">` : `<i style="background:${(f?.color || cp?.color || own?.color || '#ccc')}"></i>`}<span><b>${esc(cp ? cp.name : own.name)}</b><small>${esc(sub)}</small></span><em>${!cur ? '' : cp.existing ? '' : euro(priceOf(cur))}</em>`;
+      b.onclick = () => { if (cur) select(cur); else { chooseForSlot(slot, slot.o.pid); } };
+      lista.appendChild(b);
+    }
+    el.appendChild(lista);
   }
   $('total').textContent = euro(currentRoom >= 0 ? T.perRoom[currentRoom] : T.total);
   $('totSub').textContent = currentRoom >= 0 ? `nuevo en ${flat.rooms[currentRoom].name} · piso: ${euro(T.total)}` : 'total de lo nuevo en el piso';
@@ -1513,7 +1537,7 @@ $('b-copiar-viejo') && ($('b-copiar-viejo').onclick = async () => {
 $('addCustom').onclick = () => {
   const v = id => $(id).value, name = v('cName').trim(); if (!name) return toast('Ponle un nombre');
   const p = { id: 'c' + Date.now(), fam: ({ table: 'dining', box: 'otro' })[v('cK')] || KIND_FAM[v('cK')], name, w: +v('cW') || 50, d: +v('cD') || 50, h: +v('cH') || 50, kind: v('cK'), custom: true, elev: v('cK') === 'wallshelf' ? 150 : 0, acabados: [{ id: 'propio', name: 'Propio', color: '#c9c2b4', price: +v('cP') || 0, url: v('cU').trim() || null }] };
-  products.set(p.id, p); renderPanel(); changed(); toast('Añadido: aparecerá como alternativa y en «Añadir un mueble»');
+  products.set(p.id, p); gridCache = null; renderPanel(); changed(); toast('Añadido: aparecerá como alternativa y en «Añadir un mueble»');
 };
 
 // ================= Diseño: guardar / cargar / sincronizar =================
@@ -1585,7 +1609,7 @@ function aplicarRemoto(d) {
   if (!flat || !d) return;
   let cambio = false; const sel = selected ? slotIdOf(selected) : null;
   if (d.propuestas && JSON.stringify(d.propuestas) !== JSON.stringify(design?.propuestas || {})) { design.propuestas = d.propuestas; cambio = true; }
-  (d.propios || []).forEach(p => { if (!products.has(p.id)) { if (!p.acabados) p.acabados = [{ id: 'propio', name: 'Propio', color: p.color || '#c9c2b4', price: p.price || 0, url: p.url || null }]; products.set(p.id, p); cambio = true; } });
+  (d.propios || []).forEach(p => { if (!products.has(p.id)) { if (!p.acabados) p.acabados = [{ id: 'propio', name: 'Propio', color: p.color || '#c9c2b4', price: p.price || 0, url: p.url || null }]; products.set(p.id, p); gridCache = null; cambio = true; } });
   flat.rooms.forEach(r => r.objects.forEach(o => {
     const e = d.existentes?.[o.key]; if (!e) return; const it = items.find(i => i.existing === o.key);
     if (e.removed) { if (it) { removeItem(it); cambio = true; } return; }
@@ -1721,6 +1745,67 @@ async function abrirPisoVivo(id) {
 
 
 
+
+// ================= Catálogo en cuadrícula (al seleccionar un mueble o al añadir) =================
+let panelModo = null, gridCache = null, gridFiltro = '';
+function slotDeSel() { if (!selected) return null; const id = slotIdOf(selected); return slotItems(selected.room).find(s => (s.type === 'ex' ? 'e' + s.key : 'n' + s.uid) === id) || null; }
+function elegirEnCatalogo(p) {
+  if (selected) { const slot = slotDeSel(); if (slot) chooseForSlot(slot, p.id, p.acabados?.[0]?.id); return; }
+  const r = flat.rooms[currentRoom], c = controls.target, it = addItem(p.id, r.i, c.x, c.z, 0); const spot = findSpot(it, c.x, c.z); if (spot) { it.x = spot[0]; it.z = spot[1]; apoyar(it); place(it); } else toast('No hay hueco libre: muévelo a mano');
+  refreshWarnings(); changed(); panelModo = null; select(it); toast(p.name + ' añadido');
+}
+function tarjeta(p) {
+  const f = p.acabados?.[0], precio = p.acabados && p.acabados.length > 1 ? 'desde ' + euro(Math.min(...p.acabados.map(a => a.price))) : euro(f ? f.price : (p.price || 0));
+  const b = document.createElement('button'); b.className = 'tarj'; b.dataset.id = p.id;
+  b.innerHTML = `${f?.img ? `<img loading="lazy" src="${f.img}" alt="">` : `<i style="background:${f?.color || p.color || '#ddd'}"></i>`}<b>${esc(p.name)}</b><small>${p.w}×${p.d}×${p.h} cm</small><em>${f?.price === 0 && p.generico ? 'sin precio' : precio}</em>`;
+  b.onclick = () => elegirEnCatalogo(p); return b;
+}
+function construirGrid() {
+  const wrap = document.createElement('div'); wrap.className = 'catalogo';
+  const grupos = catalogGroups().filter(g => g.items.length);
+  const nav = document.createElement('div'); nav.className = 'catnav'; wrap.appendChild(nav);
+  const parecidos = document.createElement('section'); parecidos.className = 'catsec parecidos'; parecidos.innerHTML = '<h4>Parecidos</h4><div class="rejilla"></div>'; wrap.appendChild(parecidos);
+  for (const g of grupos) {
+    const sec = document.createElement('section'); sec.className = 'catsec'; sec.dataset.fam = g.fam; sec.innerHTML = `<h4>${esc(g.group)} <small>${g.items.length}</small></h4>`;
+    const rej = document.createElement('div'); rej.className = 'rejilla'; g.items.forEach(p => rej.appendChild(tarjeta(p))); sec.appendChild(rej); wrap.appendChild(sec);
+    const c = document.createElement('button'); c.textContent = g.group; c.dataset.fam = g.fam; c.onclick = () => { sec.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; nav.appendChild(c);
+  }
+  return wrap;
+}
+function filtrarGrid(q) {
+  gridFiltro = q; const ws = normTxt(q).split(/\s+/).filter(Boolean);
+  gridCache.querySelectorAll('.catsec:not(.parecidos)').forEach(sec => { let n = 0; sec.querySelectorAll('.tarj').forEach(t => { const ok = !ws.length || ws.every(w => txtDe(products.get(t.dataset.id)).includes(w)); t.hidden = !ok; if (ok) n++; }); sec.hidden = !n; });
+  gridCache.querySelector('.parecidos').hidden = !!ws.length;
+}
+function panelCatalogo(el) {
+  const r = flat.rooms[currentRoom >= 0 ? currentRoom : selected.room], it = selected, slot = it ? slotDeSel() : null;
+  const cp = it ? products.get(it.pid) : null, own = slot?.type === 'ex' ? products.get(slot.o.pid) : null, fam = cp ? familyOf(own || cp) : null;
+  $('h1').textContent = it ? 'Cambiar mueble' : 'Añadir a ' + r.name; $('hp').textContent = it ? 'Toca cualquier mueble del catálogo para ponerlo en su lugar. Deselecciona para volver.' : 'Toca un mueble para añadirlo a la habitación.';
+  const cab = document.createElement('div'); cab.className = 'cabSel';
+  if (it) {
+    const f = !cp.existing ? finishOf(cp, it.acabado) : null;
+    cab.innerHTML = `<div class="actual">${f?.img ? `<img src="${f.img}" alt="">` : `<i style="background:${f?.color || cp.color || '#ccc'}"></i>`}<div><small>${cp.existing ? 'Lo que ya tienes' : it.replaces ? 'Sustituye a tu ' + esc((own?.name || 'mueble').toLowerCase()) : 'Nuevo'}</small><b>${esc(cp.name)}</b><span>${cp.existing ? `${cp.w}×${cp.d}×${cp.h} cm · no suma` : euro(priceOf(it)) + (f ? ' · ' + esc(f.name) : '')}</span></div><button class="x" id="catCerrar" title="Deseleccionar">×</button></div>`;
+    if (!cp.existing && cp.acabados?.length > 1) { const acs = document.createElement('div'); acs.className = 'acabados';
+      cp.acabados.forEach(a => { const b = document.createElement('button'); b.className = 'ac' + (a.id === it.acabado ? ' sel' : ''); b.innerHTML = `${muestra(a.color)}${esc(a.name)} <small>${euro(a.price)}</small>`; b.onclick = () => slot && chooseForSlot(slot, cp.id, a.id); acs.appendChild(b); }); cab.appendChild(acs); }
+    const fila = document.createElement('div'); fila.className = 'fila'; fila.style.margin = '8px 0 2px';
+    const fa = !cp.existing ? finishOf(cp, it.acabado) : null; if (fa?.url) fila.insertAdjacentHTML('beforeend', `<a class="boton" href="${fa.url}" target="_blank" rel="noopener">Ver en IKEA ↗</a>`);
+    if (own && !cp.existing) { const b = document.createElement('button'); b.className = 'boton'; b.textContent = 'Volver a lo mío'; b.onclick = () => chooseForSlot(slot, own.id); fila.appendChild(b); }
+    const q = document.createElement('button'); q.className = 'boton'; q.style.color = 'var(--acento)'; q.textContent = own ? 'Quitarlo (no lo quiero)' : 'Quitar del plano'; q.onclick = () => slot && chooseForSlot(slot, null); fila.appendChild(q);
+    cab.appendChild(fila);
+  } else cab.innerHTML = `<div class="actual"><div><b>Catálogo completo</b><span>Ordenado por categorías</span></div><button class="x" id="catCerrar" title="Volver">×</button></div>`;
+  const busca = document.createElement('input'); busca.className = 'buscar'; busca.placeholder = 'Buscar en todo el catálogo: billy 40, sofá cama, estor…'; busca.value = gridFiltro;
+  busca.oninput = () => filtrarGrid(busca.value); cab.appendChild(busca);
+  el.appendChild(cab);
+  if (!gridCache) gridCache = construirGrid();
+  const par = gridCache.querySelector('.parecidos .rejilla'); par.innerHTML = '';
+  const ref = own || cp; (fam ? sugerencias(fam, ref, 12) : ['sofa', 'armchair', 'coffee', 'shelf', 'lampPie', 'rug', 'planta', 'cortina'].flatMap(f => sugerencias(f, null, 2))).forEach(p => par.appendChild(tarjeta(p)));
+  gridCache.querySelector('.parecidos h4').textContent = fam ? 'Parecidos' : 'Ideas para empezar';
+  gridCache.querySelectorAll('.tarj').forEach(t => t.classList.toggle('sel', !!it && t.dataset.id === it.pid));
+  // la categoría del mueble, la primera
+  const nav = gridCache.querySelector('.catnav'); [...nav.children].forEach(c => c.classList.toggle('sel', c.dataset.fam === fam));
+  el.appendChild(gridCache); filtrarGrid(gridFiltro);
+  $('catCerrar').onclick = () => { panelModo = null; gridFiltro = ''; select(null); renderPanel(); };
+}
 // ================= Amueblar por mí =================
 const ESTILOS = {
   claro: { nombre: 'Nórdico claro', si: /blanc|roble claro|abedul|beige|natural|pino|crema|gris claro|tinte blanco|hueso/i, no: /negro|antracita|nogal|oscuro/i },
@@ -1769,16 +1854,31 @@ function colocarEnPared(it, paredes, pref) {
   for (const w of orden) for (const f of [.5, .3, .7, .15, .85]) { contraPared(it, w, Math.max(W / 2 + .05, Math.min(w.L - W / 2 - .05, w.L * f))); if (penalty(it) === 0) { w.usada++; return w; } }
   const sp = findSpot(it, it.x, it.z); if (sp) { it.x = sp[0]; it.z = sp[1]; place(it); } return null;
 }
-function amueblarPorMi(ri, estilo, presupuesto) {
-  const r = flat.rooms[ri], tipo = tipoSala(r), receta = RECETAS[tipo], ex = r.objects.filter(o => items.some(i => i.existing === o.key)).map(o => products.get(o.pid)?.cat);
+function amueblarPorMi(ri, estilo, presupuesto, cambiarTodo = false) {
+  const r = flat.rooms[ri], tipo = tipoSala(r), receta = RECETAS[tipo];
   const paredes = paredesDe(r), usados = new Set(), ref = {}, añadidos = []; let gastado = 0;
-  const yaTiene = fam => (CUBRE[fam] || []).some(c => ex.includes(c));
+  if (cambiarTodo) {   // sustituye lo que ya tienes por muebles de IKEA del estilo elegido, de medida parecida
+    const MAPA = { sofa: () => 'sofa', bed: () => 'bed', chair: () => 'chair', storage: o => o.h > 140 ? 'wardrobe' : o.h > 80 ? 'shelf' : 'dresser', table: o => o.h < 55 ? 'coffee' : (o.w > 110 || o.d > 75) ? 'dining' : 'desk' };
+    const silla = {}; amueblarPorMi.hechas = new Set();
+    for (const slot of slotItems(ri)) {
+      if (slot.type !== 'ex' || !slot.current || !products.get(slot.current.pid).existing) continue;
+      const own = products.get(slot.o.pid), m = MAPA[own.cat]; if (!m) continue; const fam = m(own), peso = receta.find(q => q[0] === fam)?.[2] || .1;
+      const pick = fam === 'chair' && silla.p ? silla.p : elegir(fam, presupuesto * peso, estilo, own.w / 100 * 1.3 + .05, usados); if (!pick) continue;
+      if (fam === 'chair') silla.p = pick; else usados.add(pick.p.id); amueblarPorMi.hechas.add(fam);
+      chooseForSlot(slot, pick.p.id, pick.a.id); gastado += pick.a.price || 0;
+      const nuevo = items.find(i => i.replaces === slot.o.key); if (nuevo) añadidos.push(nuevo);
+    }
+  }
+  const catDe = i => i.existing ? products.get(i.pid)?.cat : i.replaces ? products.get('ex' + i.replaces)?.cat : null;
+  const baseDe = cats => items.find(i => i.room === ri && cats.includes(catDe(i)));
+  if (!cambiarTodo) amueblarPorMi.hechas = new Set();
+  const yaTiene = fam => !!baseDe(CUBRE[fam] || []) || amueblarPorMi.hechas.has(fam);
   const pon = (fam, x, z, rot = 0) => { const peso = receta.find(q => q[0] === fam)?.[2] || .05, m = elegir(fam, presupuesto * peso, estilo, fam === 'rug' ? Math.min(r.box.x1 - r.box.x0, r.box.z1 - r.box.z0) * .8 : null, usados); if (!m) return null;
     usados.add(m.p.id); const it = addItem(m.p.id, ri, x, z, rot, { acabado: m.a.id }); if (it) { añadidos.push(it); gastado += m.a.price || 0; } return it; };
   const cx = (r.box.x0 + r.box.x1) / 2, cz = (r.box.z0 + r.box.z1) / 2;
   for (const [fam, donde] of receta) {
     if (yaTiene(fam) && !['chair'].includes(fam)) {
-      if (['sofa', 'bed', 'desk'].includes(fam) && !ref.base) { const cat = CUBRE[fam]; const e = items.find(i => i.room === ri && i.existing && cat.includes(products.get(i.pid)?.cat));
+      if (['sofa', 'bed', 'desk'].includes(fam) && !ref.base) { const e = baseDe(CUBRE[fam]);
         if (e) { const w = paredes.map(w => ({ w, d: Math.abs((e.x - w.ax) * w.nx + (e.z - w.az) * w.nz) })).sort((a, b) => a.d - b.d)[0]?.w; if (w) { w.usada++; ref.base = { it: e, w }; if (fam !== 'sofa') ref.cama = e; } } }
       continue; }
     if (gastado > presupuesto * 1.05 && !['planta', 'cuadro', 'rug'].includes(fam)) continue;
@@ -1808,23 +1908,22 @@ function amueblarPorMi(ri, estilo, presupuesto) {
   reapoyarTodo(); refreshWarnings(); changed(); renderPanel();
   return { tipo, n: añadidos.length, gastado };
 }
-function panelAmueblar(ri) {
-  const d = document.createElement('details'); d.className = 'amueblar'; d.dataset.slot = 'auto'; if (openSlot === 'auto') d.open = true;
-  d.innerHTML = `<summary><span class="t">✨ Amueblar por mí</span><span class="p"></span><span class="e">Una propuesta completa para empezar, según estilo y presupuesto</span></summary>
-    <div class="cuerpo"><div class="estilos">${Object.entries(ESTILOS).map(([k, e], i) => `<button data-e="${k}" class="${i === 0 ? 'sel' : ''}">${e.nombre}</button>`).join('')}</div>
-    <label class="campo">Presupuesto para esta habitación (€)<input type="number" id="autoPresu" value="1500" step="100" min="200"></label>
-    <label class="nota" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="autoNueva" checked> En una propuesta nueva (no toca la actual)</label>
-    <button class="boton fuerte" id="autoGo">Proponer muebles</button></div>`;
-  let est = 'claro'; d.querySelectorAll('.estilos button').forEach(b => b.onclick = () => { est = b.dataset.e; d.querySelectorAll('.estilos button').forEach(x => x.classList.toggle('sel', x === b)); });
-  d.querySelector('summary').addEventListener('click', () => { openSlot = d.open ? null : 'auto'; });
-  d.querySelector('#autoGo').onclick = () => {
-    const presu = Math.max(200, +d.querySelector('#autoPresu').value || 1500);
-    if (d.querySelector('#autoNueva').checked) { const pr = propuestasDe(ri), sig = 'ABCDE'.split('').find(l => !pr.guardadas[l] && l !== pr.activa); if (sig) cambiarPropuesta(ri, sig); }
-    const sal = amueblarPorMi(ri, est, presu); openSlot = null; renderPanel();
-    toast(sal.n ? `${sal.n} muebles propuestos (${euro(sal.gastado)}) · cámbialos o muévelos a tu gusto` : 'No he encontrado hueco para más muebles');
-  };
-  return d;
+let autoSala = 0, autoEstilo = 'claro';
+function abrirAuto(ri) {
+  autoSala = ri; $('autoNota').textContent = `${flat.rooms[ri].name}: te propongo la habitación completa como punto de partida. Luego puedes cambiar cualquier cosa.`;
+  $('autoEstilos').innerHTML = Object.entries(ESTILOS).map(([k, e]) => `<button data-e="${k}" class="${k === autoEstilo ? 'sel' : ''}">${e.nombre}</button>`).join('');
+  $('autoEstilos').querySelectorAll('button').forEach(b => b.onclick = () => { autoEstilo = b.dataset.e; $('autoEstilos').querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b)); });
+  $('auto').classList.add('abierta');
 }
+$('autoCerrar').onclick = () => $('auto').classList.remove('abierta');
+$('auto').onclick = e => { if (e.target === $('auto')) $('auto').classList.remove('abierta'); };
+$('autoGo').onclick = () => {
+  const ri = autoSala, presu = Math.max(200, +$('autoPresu').value || 1500);
+  if ($('autoNueva').checked) { const pr = propuestasDe(ri), sig = 'ABCDE'.split('').find(l => !pr.guardadas[l] && l !== pr.activa); if (sig) cambiarPropuesta(ri, sig); }
+  $('auto').classList.remove('abierta');
+  const sal = amueblarPorMi(ri, autoEstilo, presu, $('autoTodo').checked); select(null); renderPanel();
+  toast(sal.n ? `${sal.n} muebles propuestos (${euro(sal.gastado)}) · toca cualquiera para cambiarlo` : 'No he encontrado hueco para más muebles');
+};
 // ================= Deshacer / rehacer =================
 const historial = { pila: [], pos: -1, aplicando: false };
 function instantanea() {
@@ -1945,7 +2044,7 @@ addEventListener('resize', () => ponerHoja());
 $('optBtn').onclick = e => { e.stopPropagation(); $('opciones').hidden = !$('opciones').hidden; };
 document.addEventListener('pointerdown', e => { if (!$('opciones').hidden && !e.target.closest('#opciones, #optBtn')) $('opciones').hidden = true; });
 $('selX').onclick = () => select(null);
-$('cambiarBtn').onclick = () => { if (!selected) return; openSlot = slotIdOf(selected); renderPanel(); if (esMovil()) { ponerHoja.porSel = true; ponerHoja('mitad'); } const el = document.querySelector(`details[data-slot="${openSlot}"]`); if (el) { el.open = true; el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } };
+$('cambiarBtn').onclick = () => { if (!selected) return; renderPanel(); if (esMovil()) { ponerHoja.porSel = true; ponerHoja('mitad'); } };
 $('selMasBtn').onclick = () => { $('selMas').hidden = !$('selMas').hidden; $('selMasBtn').classList.toggle('sel', !$('selMas').hidden); };
 // ================= Arranque =================
 resize(); ponerHoja('peek');
