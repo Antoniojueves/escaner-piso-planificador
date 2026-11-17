@@ -286,7 +286,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-10';
+const PLANNER_VERSION = '2026.11.18-11';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -1607,7 +1607,7 @@ function applyDesign(d) {
   reapoyarTodo(); refreshWarnings();
 }
 let saveTimer = null;
-function changed() { clearTimeout(changed.h); changed.h = setTimeout(instantanea, 250); reapoyarTodo(); if (ui.noche) ponerLuces(); renderPanel(); clearTimeout(saveTimer); saveTimer = setTimeout(save, 800); empujar(); }
+function changed() { clearTimeout(changed.h); changed.h = setTimeout(instantanea, 250); if (!historial.aplicando) $('undoBtn').disabled = false; reapoyarTodo(); if (ui.noche) ponerLuces(); renderPanel(); clearTimeout(saveTimer); saveTimer = setTimeout(save, 800); empujar(); }
 function save() {
   if (!flat) return; design = serialize(); store.set('diseno:' + flat.name, design); sync?.enviar(design);
   if (EN_APP) { try { window.webkit.messageHandlers.guardar.postMessage(JSON.stringify(design)); } catch {} } else drive.queue(design);
@@ -1978,11 +1978,13 @@ $('autoGo').onclick = () => {
 const historial = { pila: [], pos: -1, aplicando: false };
 function instantanea() {
   if (!flat || historial.aplicando) return; const d = serialize(); delete d.actualizado; const j = JSON.stringify(d);
-  if (historial.pila[historial.pos] === j) return;
+  const clave = t => { const o = JSON.parse(t); delete o.propuestas; return JSON.stringify(o); };   // las propuestas se refrescan al pintar el panel: no cuentan como cambio
+  if (historial.pila[historial.pos] && clave(historial.pila[historial.pos]) === clave(j)) return;
   historial.pila = historial.pila.slice(0, historial.pos + 1); historial.pila.push(j); if (historial.pila.length > 80) historial.pila.shift(); historial.pos = historial.pila.length - 1; botonesHist();
 }
 function botonesHist() { $('undoBtn').disabled = historial.pos <= 0; $('redoBtn').disabled = historial.pos >= historial.pila.length - 1; }
 function irHist(paso) {
+  clearTimeout(changed.h); instantanea();   // guarda antes lo último que se hizo
   const k = historial.pos + paso; if (k < 0 || k >= historial.pila.length) return;
   historial.pos = k; historial.aplicando = true; const sid = design?.sync, room = currentRoom;
   const d = JSON.parse(historial.pila[k]); d.sync = sid; d.actualizado = new Date().toISOString(); applyDesign(d); setRoom(room, false);
