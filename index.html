@@ -184,6 +184,7 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
 <script src="fotos_alfombras.js"></script>
 <script src="catalogo_plantas.js"></script>
 <script src="catalogo_textil.js"></script>
+<script src="colores_fotos.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
@@ -236,7 +237,8 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
   <p class="nota" id="autoNota">Te propongo la habitación completa como punto de partida. Luego puedes cambiar cualquier cosa.</p>
   <div class="subt">Estilo</div><div class="estilos" id="autoEstilos"></div>
   <label class="campo" style="margin-top:10px">Presupuesto para esta habitación (€)<input type="number" id="autoPresu" value="1500" step="100" min="200"></label>
-  <label class="nota" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="autoTodo"> Cambiar también lo que ya tengo (sofá, cama, mesas, armarios…)</label>
+  <p class="nota" style="margin-top:10px">Se quita lo nuevo que hubiera en la habitación y se propone de nuevo.</p>
+  <label class="nota" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="autoTodo"> Cambiar también lo que ya tengo (sofá, cama, mesas, armarios…; lo que sobre se quita)</label>
   <label class="nota" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="autoNueva" checked> Hacerlo en una propuesta nueva (no toca la actual)</label>
   <button class="boton fuerte" id="autoGo" style="margin-top:10px;width:100%;padding:11px">Proponer muebles</button>
 </div></div>
@@ -283,7 +285,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.17-31';
+const PLANNER_VERSION = '2026.11.18-1';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -442,7 +444,7 @@ function estiloGenerico(fam, tipo, dim) {
     case 'side': return { f: 'mesa', patas: 'metal', forma: dim.redondo ? 'redonda' : 'rect', grosor: .02, colorPatas: '#2b2b2b' };
     case 'desk': return /elevable/.test(t) ? { f: 'mesa', patas: 'panel', grosor: .025 } : { f: 'escritorio' };
     case 'shelf': return { f: 'libreria', libros: dim.h > 100 };
-    case 'storage': return dim.h > 110 ? { f: 'armario' } : { f: 'comoda', filas: 2, cols: dim.w > 100 ? 2 : 1, tirador: 'barra' };
+    case 'storage': return /perchero/.test(t) ? { f: 'perchero' } : /carrito/.test(t) ? { f: 'libreria', abierta: true, ruedas: true, metal: true } : /estanter|librer|zapatero abierto|estante/.test(t) ? { f: 'libreria', abierta: true } : /armario|vitrina|aparador|puerta/.test(t) ? { f: 'armario', puertas: Math.max(1, Math.round(dim.w / 60)) } : dim.h > 110 ? { f: 'armario' } : { f: 'comoda', filas: 2, cols: dim.w > 100 ? 2 : 1, tirador: 'barra' };
     case 'tvunit': return { f: 'tv', t: dim.h > 100 ? 'besta' : 'brimnes' };
     case 'wardrobe': return /vitrina/.test(t) ? { f: 'armario', vitrina: true } : { f: 'armario' };
     case 'dresser': return /aparador|armario|combinaci|mueble/.test(t) ? { f: 'armario', puertas: Math.max(2, Math.round(dim.w / 60)) } : { f: 'comoda', filas: dim.h > 110 ? 5 : dim.h > 75 ? 4 : 3, cols: dim.w > 100 ? 2 : 1, tirador: 'barra', zocalo: .05 };
@@ -627,6 +629,22 @@ async function preloadModels() {
     } catch (e) { console.warn('No se pudo cargar', n, e); }
   }));
 }
+// Sofás en esquina y en U: forma y medidas aproximadas de la planta
+for (const p of products.values()) { if (p.fam !== 'sofa' || p.kind === 'glb') continue; const n = p.name.toLowerCase();
+  if (/\bu\b|en u|forma de u/.test(n)) { p.forma = 'u'; p.w = Math.max(p.w, 300); p.d = Math.max(p.d, 200); }
+  else if (/esquin|rinconera/.test(n)) { p.forma = 'esquina'; p.d = Math.max(p.d, Math.round(Math.min(p.w, 280) * .85)); } }
+// Sillones con forma propia (revisados contra la foto de IKEA)
+for (const p of products.values()) { if (p.fam !== 'armchair' || p.kind === 'glb') continue; const n = p.name.toUpperCase(), e = p.estilo && p.estilo.f === 'sillon' ? p.estilo : null;
+  const t = /^(LILLESÄTER|STOCKHOLM)/.test(n) ? 'redondo' : /^HERRÅKRA/.test(n) ? 'concha' : /^(ÅRSUNDA|POÄNG)/.test(n) ? 'poang' : /^DYVLINGE/.test(n) ? 'giratorio' : null;
+  if (t) p.estilo = { ...(e || { f: 'sillon' }), f: 'sillon', t }; }
+// Almacenaje según lo que dice el nombre (manda sobre el estilo de la serie)
+for (const p of products.values()) { if (p.kind === 'glb' || !['storage', 'wardrobe', 'dresser'].includes(p.fam)) continue; const n = p.name.toLowerCase();
+  if (/perchero/.test(n)) p.estilo = { f: 'perchero' };
+  else if (/\barmario\b/.test(n) && !/combinaci|cajones/.test(n) && p.estilo?.f === 'comoda') p.estilo = { f: 'armario', puertas: Math.max(1, Math.round(p.w / 60)) }; }
+// Colores reales de cada acabado, sacados de su foto de IKEA (colores_fotos.js)
+{ const CF = window.COLORES_FOTOS || {};
+  for (const p of products.values()) for (const a of p.acabados || []) { const k = (a.img || '').split('/').pop().replace(/_s\d\.jpg.*/, '').split('__').pop(), v = k && CF[k];
+    if (v) { a.colorFoto = '#' + v[0]; if (v[1]) a.colorFoto2 = '#' + v[1]; a.color = a.colorFoto; } } }
 const modelsReady = preloadModels();
 function resize() { const r = view.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); renderer.domElement.style.width = r.width + 'px'; renderer.domElement.style.height = r.height + 'px'; camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix(); if (typeof ajustarVista === 'function') try { ajustarVista(); } catch {} }
 new ResizeObserver(resize).observe(view);
@@ -978,11 +996,12 @@ function rebuild(it) { const vis = it.obj.visible; furnGroup.remove(it.obj); it.
 
 // ---- colisiones con paredes y suelo ----
 const WALL_MARGIN = .05;
-function penalty(it, x = it.x, z = it.z, rot = it.rot) {
+// conChoques: solo al colocar automáticamente (añadir, amueblar por mí); al mover a mano, los muebles pueden solaparse y solo frenan las paredes
+function penalty(it, x = it.x, z = it.z, rot = it.rot, conChoques = false) {
   const r = flat.rooms[it.room], { W, D } = it.obj.userData.size, c = Math.cos(rot), s = Math.sin(rot), hw = W / 2 + WALL_MARGIN, hd = D / 2 + WALL_MARGIN; let pen = 0;
   for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1], [0, -1], [0, 1], [-1, 0], [1, 0]]) { const lx = a * hw, lz = b * hd; if (!pointInPoly(x + lx * c + lz * s, z - lx * s + lz * c, r.poly)) pen++; }
   for (const [px, pz] of r.poly) { const dx = px - x, dz = pz - z, lx = dx * c - dz * s, lz = dx * s + dz * c; if (Math.abs(lx) < hw - .01 && Math.abs(lz) < hd - .01) pen++; }
-  if (esSolido(it)) for (const o of items) if (o !== it && o.room === it.room && o.obj.visible !== false && esSolido(o) && choca(it, x, z, rot, o)) pen += 2;
+  if (conChoques && esSolido(it)) for (const o of items) if (o !== it && o.room === it.room && o.obj.visible !== false && esSolido(o) && choca(it, x, z, rot, o)) pen += 2;
   return pen;
 }
 // Imanes: pegar a la pared cercana y alinear con otros muebles (con guía)
@@ -1073,8 +1092,8 @@ function arrastrarEncima(it, ox, oz, orot) {
 }
 function reapoyarTodo() { for (const it of items) if (esSobre(products.get(it.pid))) { const prev = it.apoyo; if (prev != null && !items.some(o => o.uid === prev)) it.apoyo = null; apoyar(it, false); if (it.apoyo == null && prev != null && products.get(it.pid).fam === 'lampMesa') it.elev = 0; place(it); } }
 function findSpot(it, x0, z0, rot = it.rot, maxR = 3) {
-  if (penalty(it, x0, z0, rot) === 0) return [x0, z0];
-  for (let rad = .05; rad <= maxR; rad += .05) for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, x = x0 + Math.cos(a) * rad, z = z0 + Math.sin(a) * rad; if (penalty(it, x, z, rot) === 0) return [Math.round(x * 100) / 100, Math.round(z * 100) / 100]; }
+  if (penalty(it, x0, z0, rot, true) === 0) return [x0, z0];
+  for (let rad = .05; rad <= maxR; rad += .05) for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, x = x0 + Math.cos(a) * rad, z = z0 + Math.sin(a) * rad; if (penalty(it, x, z, rot, true) === 0) return [Math.round(x * 100) / 100, Math.round(z * 100) / 100]; }
   return null;
 }
 function setElev(it, cm) { const r = flat.rooms[it.room]; it.libre = true; it.apoyo = null; it.elev = Math.max(0, Math.min(r.height - it.obj.userData.size.H, cm / 100)); place(it); refreshWarnings(); $('elev').value = Math.round(it.elev * 100); }
@@ -1149,7 +1168,8 @@ function refreshWarnings() {
   for (const it of items) { if (products.get(it.pid).existing) continue; const out = penalty(it) > 0; it.obj.traverse(o => { if (o.isMesh) { if (Array.isArray(o.material) || !o.material.emissive) return; if (!o.userData.own) { o.material = o.material.clone(); o.userData.own = true; } o.material.emissive.set(out ? '#6a1a00' : '#000'); } }); }
   if (selected) { const pen = !products.get(selected.pid).existing ? penalty(selected) : 0, choque = pen > 0 && esSolido(selected) && items.some(o => o !== selected && o.room === selected.room && esSolido(o) && choca(selected, selected.x, selected.z, selected.rot, o));
     const av = !products.get(selected.pid).existing ? avisosSala(selected.room).filter(a => a.it === selected) : [];
-    $('selWarn').innerHTML = pen > 0 ? (choque ? 'Choca con otro mueble' : 'Se sale de la habitación') : av.length ? av[0].t : ''; $('selWarn').style.display = $('selWarn').innerHTML ? 'block' : 'none'; selBox.setFromObject(selected.obj); }
+    const solapa = esSolido(selected) && items.find(o => o !== selected && o.room === selected.room && o.obj.visible !== false && esSolido(o) && choca(selected, selected.x, selected.z, selected.rot, o));
+    $('selWarn').innerHTML = pen > 0 ? 'Se sale de la habitación' : solapa ? 'Se solapa con ' + esc(products.get(solapa.pid).name.split(/[,(]/)[0]) : av.length ? av[0].t : ''; $('selWarn').style.display = $('selWarn').innerHTML ? 'block' : 'none'; selBox.setFromObject(selected.obj); }
 }
 
 // ================= Vistas, habitaciones y luces =================
@@ -1851,18 +1871,25 @@ function contraPared(it, w, t) {
 }
 function colocarEnPared(it, paredes, pref) {
   const W = it.obj.userData.size.W, orden = paredes.filter(w => w.L > W + .15).sort((a, b) => pref(b) - pref(a));
-  for (const w of orden) for (const f of [.5, .3, .7, .15, .85]) { contraPared(it, w, Math.max(W / 2 + .05, Math.min(w.L - W / 2 - .05, w.L * f))); if (penalty(it) === 0) { w.usada++; return w; } }
+  for (const w of orden) for (const f of [.5, .3, .7, .15, .85]) { contraPared(it, w, Math.max(W / 2 + .05, Math.min(w.L - W / 2 - .05, w.L * f))); if (penalty(it, it.x, it.z, it.rot, true) === 0) { w.usada++; return w; } }
   const sp = findSpot(it, it.x, it.z); if (sp) { it.x = sp[0]; it.z = sp[1]; place(it); } return null;
 }
 function amueblarPorMi(ri, estilo, presupuesto, cambiarTodo = false) {
   const r = flat.rooms[ri], tipo = tipoSala(r), receta = RECETAS[tipo];
   const paredes = paredesDe(r), usados = new Set(), ref = {}, añadidos = []; let gastado = 0;
+  // empezar de cero: fuera lo nuevo de la habitación (y lo que sustituía a lo tuyo vuelve a ser lo tuyo)
+  for (const it of items.filter(i => i.room === ri && !i.existing && !i.replaces)) removeItem(it);
+  if (!cambiarTodo) for (const slot of slotItems(ri)) if (slot.type === 'ex' && slot.rep) chooseForSlot(slot, slot.o.pid);
   if (cambiarTodo) {   // sustituye lo que ya tienes por muebles de IKEA del estilo elegido, de medida parecida
     const MAPA = { sofa: () => 'sofa', bed: () => 'bed', chair: () => 'chair', storage: o => o.h > 140 ? 'wardrobe' : o.h > 80 ? 'shelf' : 'dresser', table: o => o.h < 55 ? 'coffee' : (o.w > 110 || o.d > 75) ? 'dining' : 'desk' };
-    const silla = {}; amueblarPorMi.hechas = new Set();
-    for (const slot of slotItems(ri)) {
-      if (slot.type !== 'ex' || !slot.current || !products.get(slot.current.pid).existing) continue;
-      const own = products.get(slot.o.pid), m = MAPA[own.cat]; if (!m) continue; const fam = m(own), peso = receta.find(q => q[0] === fam)?.[2] || .1;
+    const silla = {}, cupo = {}; amueblarPorMi.hechas = new Set();
+    const slots = slotItems(ri).filter(sl => sl.type === 'ex' && sl.current), famDe = sl => { const own = products.get(sl.o.pid), m = MAPA[own.cat]; return m ? m(own) : null; };
+    const hayComedor = slots.some(sl => famDe(sl) === 'dining') || tipo === 'comedor';
+    const MAX = { sofa: 1, bed: 1, coffee: 1, dining: 1, desk: 1, wardrobe: 2, shelf: 2, dresser: 1, chair: hayComedor ? 6 : 1 };
+    for (const slot of slots) {
+      const own = products.get(slot.o.pid), fam = famDe(slot); if (!fam) continue;
+      cupo[fam] = (cupo[fam] || 0) + 1; if (cupo[fam] > (MAX[fam] ?? 1)) { chooseForSlot(slot, null); continue; }   // sobra: se quita
+      const peso = receta.find(q => q[0] === fam)?.[2] || .1;
       const pick = fam === 'chair' && silla.p ? silla.p : elegir(fam, presupuesto * peso, estilo, own.w / 100 * 1.3 + .05, usados); if (!pick) continue;
       if (fam === 'chair') silla.p = pick; else usados.add(pick.p.id); amueblarPorMi.hechas.add(fam);
       chooseForSlot(slot, pick.p.id, pick.a.id); gastado += pick.a.price || 0;

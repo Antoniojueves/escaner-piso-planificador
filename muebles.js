@@ -55,35 +55,48 @@ function tirador(g, tipo, x, y, z, m, w = .12) {
 
 // ---------- SOFÁS ----------
 function sofa(g, W, D, H, c, o) {
+  // sofás en esquina (L) y en U: un tramo atrás de todo el ancho y alas laterales que vienen hacia delante
+  if (o.forma === 'esquina' || o.forma === 'u') {
+    const fd = Math.min(o.fondo ?? .97, D * .6), z0 = -D / 2, ala = D - fd, u = o.forma === 'u';
+    const izq = o.esquinaDer ? false : true;     // por defecto, el ala a la izquierda
+    sofa(g, W, fd, H, c, { ...o, forma: null, sinIzq: u || izq, sinDer: u || !izq, chaise: false, _desplZ: z0 + fd / 2 });
+    for (const lado of u ? [-1, 1] : [izq ? -1 : 1]) {
+      const sub = new THREE.Group(); sofa(sub, ala, fd, H, c, { ...o, forma: null, sinDer: lado < 0, sinIzq: lado > 0, chaise: false, plazas: Math.max(1, Math.round(ala / .62)) });
+      sub.rotation.y = lado < 0 ? Math.PI / 2 : -Math.PI / 2; sub.position.set(lado * (W / 2 - fd / 2), 0, z0 + fd + ala / 2); g.add(sub);
+    }
+    return;
+  }
+  if (o._desplZ != null) { const sub = new THREE.Group(); sub.position.z = o._desplZ; g.add(sub); return sofa(sub, W, D, H, c, { ...o, _desplZ: null }); }
   const tela = M(c, { tela: true }), tela2 = M(new THREE.Color(c).multiplyScalar(.9).getStyle(), { tela: true });
   const pataM = o.patas === 'metal' ? METAL('#2a2a2a') : M(o.colorPatas || '#8a6a4a');
   const legH = o.legH ?? .08, seatH = o.seatH ?? .45, sofaD = Math.min(D, o.fondo ?? .97), z0 = -D / 2, armW = o.brazoW ?? (W > 1.2 ? .16 : .14);
   const armH = o.brazoH ?? (seatH + .18), backT = o.respaldoT ?? .22, seats = o.plazas ?? Math.max(1, Math.round((W - 2 * armW) / .62));
-  const sinBrazos = o.brazos === 'no', aw = sinBrazos ? 0 : armW, innerW = W - 2 * aw;
+  const sinBrazos = o.brazos === 'no', aw = sinBrazos ? 0 : armW, aL = o.sinIzq ? 0 : aw, aR = o.sinDer ? 0 : aw, innerW = W - aL - aR, xc = (aL - aR) / 2;
   // base
   if (o.patas !== 'oculta') { const pg = new THREE.Group(); pg.position.z = z0 + sofaD / 2; g.add(pg); patas(pg, W - .06, sofaD - .06, legH, pataM, o.patas === 'metal' ? 'metal' : o.patas === 'conica' ? 'conica' : 'taco', .04); }
   const baseY = o.patas === 'oculta' ? 0 : legH, baseH = Math.max(.12, seatH - baseY - .14);
   rcaja(g, W, baseH, sofaD, .03, tela2, 0, baseY, z0 + sofaD / 2);
   // asientos
-  const hayCh = D > sofaD + .2, chW0 = hayCh ? Math.min(.95, innerW / 2 + .1) : 0, seatW = innerW - chW0, nS = hayCh ? Math.max(1, seats - 1) : seats;
+  const hayCh = o.chaise !== false && D > sofaD + .2, chW0 = hayCh ? Math.min(.95, innerW / 2 + .1) : 0, seatW = innerW - chW0, nS = hayCh ? Math.max(1, seats - 1) : seats;
   const seatD = sofaD - backT, cw = innerW / seats, sw = seatW / nS;
-  for (let i = 0; i < nS; i++) rcaja(g, sw - .01, seatH - baseY - baseH + .02, seatD - .02, o.recto ? .02 : .05, tela, -innerW / 2 + sw * (i + .5), baseY + baseH - .02, z0 + backT + seatD / 2);
+  for (let i = 0; i < nS; i++) rcaja(g, sw - .01, seatH - baseY - baseH + .02, seatD - .02, o.recto ? .02 : .05, tela, xc - innerW / 2 + sw * (i + .5), baseY + baseH - .02, z0 + backT + seatD / 2);
   // respaldo
-  if (o.respaldo === 'fijo') rcaja(g, innerW, H - seatH + .1, backT, .05, tela, 0, seatH - .1, z0 + backT / 2);
+  if (o.respaldo === 'fijo') rcaja(g, innerW, H - seatH + .1, backT, .05, tela, xc, seatH - .1, z0 + backT / 2);
   else if (o.respaldo === 'bloque') rcaja(g, W, H - baseY - baseH, backT, .04, tela, 0, baseY + baseH, z0 + backT / 2);
   else {
-    rcaja(g, innerW, Math.max(.2, (H - seatH) * .55), .12, .03, tela2, 0, seatH - .05, z0 + .06);
-    for (let i = 0; i < seats; i++) { const cu = rcaja(g, cw - .015, H - seatH + .02, .2, .07, tela, -innerW / 2 + cw * (i + .5), seatH - .04, z0 + .15); cu.rotation.x = -.12; }
+    rcaja(g, innerW, Math.max(.2, (H - seatH) * .55), .12, .03, tela2, xc, seatH - .05, z0 + .06);
+    for (let i = 0; i < seats; i++) { const cu = rcaja(g, cw - .015, H - seatH + .02, .2, .07, tela, xc - innerW / 2 + cw * (i + .5), seatH - .04, z0 + .15); cu.rotation.x = -.12; }
   }
   // brazos
   if (!sinBrazos) for (const s of [-1, 1]) {
+    if ((s < 0 && o.sinIzq) || (s > 0 && o.sinDer)) continue;
     const x = s * (W / 2 - armW / 2);
     if (o.brazos === 'redondo') { const b = rcaja(g, armW, armH - baseY, sofaD, armW / 2.2, tela, x, baseY, z0 + sofaD / 2, 5); }
     else if (o.brazos === 'fino') rcaja(g, armW, armH - baseY, sofaD, .02, tela, x, baseY, z0 + sofaD / 2);
     else rcaja(g, armW, armH - baseY, sofaD, .045, tela, x, baseY, z0 + sofaD / 2);
   }
   // chaiselongue (a la derecha, hacia delante)
-  if (D > sofaD + .2) {
+  if (hayCh) {
     const chW = Math.min(.95, innerW / 2 + .1), x = W / 2 - aw - chW / 2, d2 = D - sofaD;
     rcaja(g, chW + aw, baseH, d2 + .02, .03, tela2, x + aw / 2, baseY, z0 + sofaD + d2 / 2 - .01);
     rcaja(g, chW - .01, seatH - baseY - baseH + .02, d2 + seatD - .03, .05, tela, x, baseY + baseH - .02, z0 + backT + (d2 + seatD) / 2);
@@ -124,12 +137,30 @@ function sillon(g, W, D, H, c, o) {
       for (const s of [-1, 1]) { barra(g, [s * (W / 2 - .03), 0, D / 2 - .05], [s * (W / 2 - .03), .58, D / 2 - .08], .02, mad); barra(g, [s * (W / 2 - .03), 0, -D / 2 + .05], [s * (W / 2 - .03), .58, -D / 2 + .02], .02, mad); rcaja(g, .06, .03, D - .02, .012, mad, s * (W / 2 - .03), .58, 0); }
       rcaja(g, W - .1, .12, D - .2, .04, tela, 0, .32, .06); const b = rcaja(g, W - .1, .42, .12, .05, tela, 0, .4, -D / 2 + .12); b.rotation.x = -.18; break;
     }
-    case 'giratorio': { // DYVLINGE: carcasa redondeada sobre base de estrella
-      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; barra(g, [0, .05, 0], [Math.cos(a) * W * .38, .02, Math.sin(a) * D * .38], .015, METAL('#c9ccd0')); }
+    case 'giratorio': { // DYVLINGE: butaca acolchada (respaldo envolvente y asiento grueso) sobre pie de estrella
+      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; barra(g, [0, .05, 0], [Math.cos(a) * W * .4, .02, Math.sin(a) * D * .4], .015, METAL('#c9ccd0')); }
       cil(g, .03, .03, .3, METAL('#c9ccd0'), 0, .04, 0);
-      const sh = new THREE.Mesh(new THREE.SphereGeometry(.5, 32, 16, 0, Math.PI * 2, 0, Math.PI * .55), tela); sombra(sh);
-      sh.material = sh.material.clone(); sh.material.side = THREE.DoubleSide; sh.scale.set(W * .95, H * .75, D * .95); sh.rotation.x = -Math.PI * .36; sh.position.set(0, .4 + H * .05, -.02); g.add(sh);
-      rcaja(g, W * .62, .12, D * .55, .05, M(new THREE.Color(c).multiplyScalar(.93).getStyle(), { tela: true }), 0, .33, .08);
+      const t2 = M(new THREE.Color(c).multiplyScalar(.94).getStyle(), { tela: true });
+      rcaja(g, W * .86, .2, D * .78, .09, tela, 0, .3, .03, 5);
+      const re = rcaja(g, W * .9, H - .42, .24, .11, tela, 0, .44, -D / 2 + .16, 5); re.rotation.x = -.16;
+      for (const sx of [-1, 1]) { const b = rcaja(g, .17, .26, D * .62, .08, t2, sx * (W * .45 - .085), .44, -.02, 5); b.rotation.z = sx * .08; }
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) esfera(g, .012, t2, (i - 1) * W * .22, .62 + j * .2, -D / 2 + .29 - j * .03);
+      break;
+    }
+    case 'concha': { // HERRÅKRA: carcasa tapizada en una pieza sobre cuatro patas finas
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) barra(g, [sx * W * .32, 0, sz * D * .3], [sx * W * .22, .38, sz * D * .18], .014, METAL(o.colorPatas || '#2a2a2a'));
+      const sh = new THREE.Mesh(new THREE.CylinderGeometry(.5, .42, 1, 36, 1, true, Math.PI * .15, Math.PI * 1.7), M(c, { tela: true })); sombra(sh);
+      sh.material = sh.material.clone(); sh.material.side = THREE.DoubleSide; sh.scale.set(W * .98, H - .4, D * .95); sh.position.set(0, .38 + (H - .4) / 2, 0); g.add(sh);
+      const as = cil(g, .5, .5, .1, tela, 0, .38, .02, 32); as.scale.set(W * .86, 1, D * .82);
+      break;
+    }
+    case 'redondo': { // LILLESÄTER, STOCKHOLM: butaca baja, mullida y redondeada, con respaldo envolvente grueso
+      const h = Math.min(H, .82), y0 = o.patas === 'oculta' ? 0 : .07;
+      if (o.patas !== 'oculta') patas(g, W - .22, D - .22, y0, M(o.colorPatas || '#b08a5c', { madera: true }), 'conica', .04);
+      rcaja(g, W * .96, .4 - y0, D * .9, .16, tela, 0, y0, .02, 6);
+      const n = 18, rx = W * .4, rz = D * .38, hb = h - .3;   // respaldo curvo: segmentos mullidos a lo largo de un arco
+      for (let i = 0; i < n; i++) { const a = Math.PI * (-.1 + 1.2 * i / (n - 1)), x = Math.cos(a) * rx, z = -Math.sin(a) * rz;
+        const k = rcaja(g, .2, hb * (1 - Math.abs(Math.cos(a)) * .12), .22, .1, tela, x, .3, z, 4); k.rotation.y = a - Math.PI / 2; }
       break;
     }
     case 'relax': { // MUREN, EKOLSUND
@@ -197,11 +228,13 @@ function silla(g, W, D, H, c, o) {
   if (o.asiento === 'redondo') { const k = cil(g, .5, .5, .05, tela, 0, seatY - .05, .02, 36); k.scale.set(W * .95, 1, D * .9); }
   else rcaja(g, W, o.asiento === 'tapizado' ? .07 : .035, D - .02, o.asiento === 'plastico' ? .02 : .012, seatM, 0, seatY - .04, .01);
   const bz = -D / 2 + .03, bh = H - seatY;
+  if (o.respaldo === 'ninguno' && H > .6) { const y = H * .38; for (const [a, b] of [[[-1, -1], [1, -1]], [[1, -1], [1, 1]], [[1, 1], [-1, 1]], [[-1, 1], [-1, -1]]]) barra(g, [a[0] * (W / 2 - .06), y, a[1] * (D / 2 - .06)], [b[0] * (W / 2 - .06), y, b[1] * (D / 2 - .06)], .009, sec); }
   switch (o.respaldo) {
     case 'escalera': for (const s of [-1, 1]) caja(g, .035, bh, .035, sec, s * (W / 2 - .035), seatY - .03, bz); for (let i = 0; i < 3; i++) caja(g, W - .07, .045, .02, m, 0, seatY + .12 + i * (bh - .2) / 2, bz); break;
     case 'listones': for (const s of [-1, 1]) caja(g, .035, bh, .035, sec, s * (W / 2 - .035), seatY - .03, bz); caja(g, W - .07, .06, .025, m, 0, H - .07, bz); for (let i = 0; i < 4; i++) caja(g, .025, bh - .12, .015, m, -W / 4 + i * W / 6, seatY + .02, bz); break;
     case 'tapizado': { const b = rcaja(g, W - .02, bh + .02, .07, .03, tela, 0, seatY - .02, bz + .02); b.rotation.x = -.08; break; }
-    case 'carcasa': { const b = rcaja(g, W - .02, bh, .03, .015, seatM, 0, seatY - .02, bz + .02); b.rotation.x = -.15; break; }
+    case 'carcasa': { // carcasa de plástico curva (BALTSAR, TEODORES…)
+      const sh = new THREE.Mesh(new THREE.CylinderGeometry(W * .52, W * .46, bh, 32, 1, true, Math.PI * .62, Math.PI * .76), seatM); sombra(sh); sh.material = sh.material.clone(); sh.material.side = THREE.DoubleSide; sh.position.set(0, seatY + bh / 2 - .03, bz + W * .44); sh.rotation.x = -.1; g.add(sh); break; }
     case 'curvo': { const sh = new THREE.Mesh(new THREE.CylinderGeometry(W * .55, W * .55, bh * .55, 32, 1, true, Math.PI * .7, Math.PI * .6), m); sombra(sh); sh.material.side = THREE.DoubleSide; sh.position.set(0, seatY + bh * .45, bz + W * .42); g.add(sh); for (const s of [-1, 1]) cil(g, .016, .016, bh * .55, sec, s * (W / 2 - .05), seatY - .02, bz + .05, 10); break; }
     case 'ninguno': break;
     case 'aro': default: for (const s of [-1, 1]) caja(g, .035, bh, .035, sec, s * (W / 2 - .035), seatY - .03, bz); rcaja(g, W - .04, .14, .03, .01, m, 0, H - .16, bz);
@@ -436,8 +469,10 @@ export function construir(p, acabado) {
   const st = p.estilo || ESTILOS[p.id] || ESTILO_TIPO[p.kind]; if (!st) return null;
   const W = p.w / 100, D = p.d / 100, H = p.h / 100, g = new THREE.Group();
   const nombre = acabado?.name || '';
-  const [c1, c2] = nombre.split('/').map(s => colorDe(s.trim(), null));
-  const o = { ...st };
+  let [c1, c2] = nombre.split('/').map(s => colorDe(s.trim(), null));
+  // el color real, sacado de la foto del producto, manda sobre el que se deduce del nombre
+  const cf = acabado?.colorFoto; if (cf) { c1 = cf; if (c2 && acabado.colorFoto2) c2 = acabado.colorFoto2; }
+  const o = { ...st }; if (p.forma) o.forma = p.forma;
   if (/puertas/i.test(nombre)) o.puertas = true;
   let c = st.color || c1 || acabado?.color || '#b8b2a6';
   // tapizados: la tela es el último color del nombre; la madera/metal, el primero
@@ -446,7 +481,7 @@ export function construir(p, acabado) {
   if ((st.f === 'sofa' || st.f === 'sillon' || (st.f === 'cama' && st.t === 'tapizada')) && ult) { cc = ult; if (segs.length > 1 && !o.colorMadera) o.colorMadera = segs[0]; }
   if (st.f === 'silla' && segs.length > 1 && (o.asiento === 'tapizado' || o.colorTela)) o.colorTela = ult;
   if (/\/madera$/i.test(nombre)) { o.patas = 'conica'; o.colorPatas = '#9a6b45'; } else if (/\/metal$/i.test(nombre)) { o.patas = 'metal'; o.colorPatas = '#2b2b2b'; }
-  if (cc) c = cc;
+  if (cc && !cf) c = cc;
   if (c2 && !o.color2) o.color2 = c2;
   if (c2 && !o.colorPatas && /negro|metal|cromado|blanco/.test(nombre.split('/')[1] || '')) o.colorPatas = c2;
   switch (st.f) {
@@ -529,8 +564,8 @@ const ESTILOS = {
   // sillones
   poang: { f: 'sillon', t: 'poang', colorMadera: '#dcc39c' },
   ekenaset: { f: 'sillon', t: 'brazosMadera', colorMadera: '#c49a66' },
-  arsunda: { f: 'sillon', t: 'butaca', brazoH: .55 },
-  herrakra: { f: 'sillon', t: 'butaca', brazoH: .6 },
+  arsunda: { f: 'sillon', t: 'poang' },
+  herrakra: { f: 'sillon', t: 'concha' },
   strandmon: { f: 'sillon', t: 'orejero' },
   muren: { f: 'sillon', t: 'relax' }, ekolsund: { f: 'sillon', t: 'relax' },
   ektorpS: { f: 'sillon', t: 'butaca', patas: 'oculta', brazoH: .66 },

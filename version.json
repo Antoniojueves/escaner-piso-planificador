@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.17-31",
+  "version": "2026.11.18-1",
   "files": [
     "catalogo_cuadros.js",
     "catalogo_ikea.js",
@@ -14,6 +14,7 @@
     "redondeado.js",
     "texturas.js",
     "sincro.js",
-    "catalogo_textil.js"
+    "catalogo_textil.js",
+    "colores_fotos.js"
   ]
 }
