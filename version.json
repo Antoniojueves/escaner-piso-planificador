@@ -1,1 +1,18 @@
-{"version": "2026.11.17-25", "files": ["catalogo_cuadros.js", "catalogo_ikea.js", "catalogo_plantas.js", "demo.json", "fotos_alfombras.js", "fotos_cuadros.js", "index.html", "modelos.js", "muebles.js", "ply.js", "redondeado.js", "texturas.js"]}
+{
+  "version": "2026.11.17-26",
+  "files": [
+    "catalogo_cuadros.js",
+    "catalogo_ikea.js",
+    "catalogo_plantas.js",
+    "demo.json",
+    "fotos_alfombras.js",
+    "fotos_cuadros.js",
+    "index.html",
+    "modelos.js",
+    "muebles.js",
+    "ply.js",
+    "redondeado.js",
+    "texturas.js",
+    "sincro.js"
+  ]
+}

@@ -52,6 +52,9 @@
   #pie .tot { flex:1; } #pie .tot b { font-size:19px; font-variant-numeric:tabular-nums; } #pie .tot span { display:block; color:var(--suave); font-size:12px; }
   #pie button, .boton { border:1px solid var(--linea); background:#fff; padding:7px 11px; border-radius:999px; }
   .boton.fuerte { background:var(--tinta); color:#fff; border-color:var(--tinta); }
+  .envivo { position:absolute; top:58px; right:12px; z-index:6; display:flex; align-items:center; gap:7px; padding:6px 11px; border-radius:999px; background:rgba(255,255,255,.92); box-shadow:0 2px 10px rgba(0,0,0,.08); font-size:12.5px; color:var(--tinta); }
+  .envivo i { width:8px; height:8px; border-radius:50%; background:#9aa0a6; }
+  .envivo.envivo i { background:#2fa36b; box-shadow:0 0 0 3px rgba(47,163,107,.18); } .envivo.error i { background:#c0392b; } .envivo.subiendo i, .envivo.conectando i { background:#e0a100; }
   .pildora.fuerte { background:var(--acento); color:#fff; border-color:var(--acento); }
   #sel { position:absolute; left:12px; bottom:max(12px, env(safe-area-inset-bottom)); background:var(--velo); border-radius:16px; box-shadow:0 2px 14px rgba(0,0,0,.12); padding:10px 14px 12px; display:none; max-width:calc(100% - 24px); }
   #sel .g { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--acento); font-weight:700; }
@@ -114,6 +117,7 @@
 <body>
 <div id="app">
   <div id="vista">
+    <div id="envivo" class="envivo" hidden></div>
     <div id="view"></div>
     <div id="barra">
       <button class="pildora sel" data-vista="3d">Maqueta</button><button class="pildora" data-vista="plan">Planta</button><button class="pildora fuerte" id="arBtn" style="display:none">Ver en AR</button>
@@ -144,6 +148,11 @@
 </div>
 <div id="hoja"><div>
   <div class="fila" style="justify-content:space-between"><h2>Más opciones</h2><button class="boton" id="hojaCerrar">Cerrar</button></div>
+  <div id="vivoBox" hidden>
+    <h3>En vivo en el ordenador y el móvil</h3>
+    <p class="nota">Abre este enlace en el ordenador (o en otro móvil) y lo que cambies en uno se verá al instante en el otro. Quien tenga el enlace puede ver y editar el piso.</p>
+    <div class="fila"><input id="enlaceVivo" readonly style="flex:1;min-width:0"><button class="boton fuerte" id="copiarVivo">Copiar enlace</button></div>
+  </div>
   <div id="webOnly">
     <h3>Piso</h3>
     <p class="nota">Abre el .zip del piso que la app del iPhone copia en tu carpeta de Drive.</p>
@@ -172,7 +181,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.17-25';
+const PLANNER_VERSION = '2026.11.17-26';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -504,6 +513,7 @@ new ResizeObserver(resize).observe(view);
 
 // ================= Estado =================
 let flat = null, cloud = null, items = [], selected = null, currentRoom = -1, viewMode = '3d', uidSeq = 1, design = null;
+const CLI = Math.random().toString(36).slice(2, 7) + '-';   // prefijo de los muebles nuevos de este dispositivo (evita choques al editar a la vez)
 const ui = { noche: false, girar: false, paredes: false, nube: false };
 
 // ================= Lectura de RoomPlan =================
@@ -792,8 +802,8 @@ function addItem(pid, room, x, z, rot = 0, opts = {}) {
   const r = flat.rooms[room], acabado = opts.acabado || p.acabados?.[0]?.id || null, obj = modelFor(p, acabado);
   let elev = Math.max(0, opts.elev ?? (opts.y != null ? opts.y - r.floorY : (p.elev || 0) / 100));
   if (p.techo && opts.elev == null) elev = Math.max(0, r.height - obj.userData.size.H);
-  const it = { uid: opts.uid || uidSeq++, pid, acabado, room, x, z, rot, obj, existing: opts.existing || null, replaces: opts.replaces || null, elev, libre: !!opts.libre };
-  uidSeq = Math.max(uidSeq, it.uid + 1);
+  const it = { uid: opts.uid || CLI + uidSeq++, pid, acabado, room, x, z, rot, obj, existing: opts.existing || null, replaces: opts.replaces || null, elev, libre: !!opts.libre };
+  if (typeof it.uid === 'number') uidSeq = Math.max(uidSeq, it.uid + 1);
   obj.userData.item = it; furnGroup.add(obj); items.push(it); if (opts.elev == null) apoyar(it, !opts.existing); place(it);
   return it;
 }
@@ -912,6 +922,7 @@ const selBox = new THREE.BoxHelper(undefined, 0x9a3b2a); selBox.visible = false;
 let openSlot = null; const showAll = new Set();
 function slotIdOf(it) { return it.existing ? 'e' + it.existing : it.replaces ? 'e' + it.replaces : 'n' + it.uid; }
 function select(it, openPanel = true) {
+  sync?.seleccion(it ? slotIdOf(it) : null);
   if (it && paredSel) cerrarPared();
   selected = it; const panel = $('sel');
   if (!it) { panel.style.display = 'none'; selBox.visible = false; return; }
@@ -1123,7 +1134,7 @@ renderer.domElement.addEventListener('pointerdown', e => {
 renderer.domElement.addEventListener('pointermove', e => {
   if (!drag || drag.none) return; pick(e); const pt = new THREE.Vector3(); if (!ray.ray.intersectPlane(drag.plane, pt)) return;
   const it = drag.it, nx = Math.round((pt.x + drag.dx) * 100) / 100, nz = Math.round((pt.z + drag.dz) * 100) / 100;
-  if (tryMove(it, nx, nz) || tryMove(it, nx, it.z) || tryMove(it, it.x, nz)) { drag.moved = true; refreshWarnings(); }
+  if (tryMove(it, nx, nz) || tryMove(it, nx, it.z) || tryMove(it, it.x, nz)) { drag.moved = true; refreshWarnings(); empujar(150); }
 });
 renderer.domElement.addEventListener('pointerup', e => {
   if (drag && drag.none && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) {
@@ -1226,7 +1237,7 @@ function serialize() {
   flat.rooms.forEach(r => r.objects.forEach(o => { const p = products.get(o.pid), it = items.find(i => i.existing === o.key); ex[o.key] = { removed: !it, x: it?.x, z: it?.z, rot: it?.rot, elev: it?.elev, libre: it?.libre, name: p.name, w: p.w, d: p.d, h: p.h }; }));
   return { version: 2, proyecto: flat.name, actualizado: new Date().toISOString(),
     nuevos: items.filter(i => !i.existing).map(({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre }) => ({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre })),
-    existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {} };
+    existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {}, sync: design?.sync || null };
 }
 function applyDesign(d) {
   [...items].forEach(i => furnGroup.remove(i.obj)); items = []; select(null);
@@ -1243,13 +1254,99 @@ function applyDesign(d) {
   reapoyarTodo(); refreshWarnings();
 }
 let saveTimer = null;
-function changed() { reapoyarTodo(); if (ui.noche) ponerLuces(); renderPanel(); clearTimeout(saveTimer); saveTimer = setTimeout(save, 800); }
+function changed() { reapoyarTodo(); if (ui.noche) ponerLuces(); renderPanel(); clearTimeout(saveTimer); saveTimer = setTimeout(save, 800); empujar(); }
 function save() {
-  if (!flat) return; design = serialize(); store.set('diseno:' + flat.name, design);
+  if (!flat) return; design = serialize(); store.set('diseno:' + flat.name, design); sync?.enviar(design);
   if (EN_APP) { try { window.webkit.messageHandlers.guardar.postMessage(JSON.stringify(design)); } catch {} } else drive.queue(design);
 }
 $('copyDesign').onclick = async () => { if (!flat) return; const t = JSON.stringify(serialize()); $('designText').value = t; try { await navigator.clipboard.writeText(t); toast('Código copiado'); } catch { toast('Cópialo del cuadro'); } };
 $('loadDesign').onclick = () => { try { applyDesign(JSON.parse($('designText').value)); setRoom(currentRoom, false); save(); toast('Diseño cargado'); } catch { toast('Código no válido'); } };
+
+// ================= En vivo: móvil ⇄ ordenador (sincro.js, Firebase) =================
+let sync = null, empT = null, empUlt = 0;
+const DISPOSITIVO = EN_APP ? 'Móvil' : 'Ordenador';
+const WEB = 'https://antoniojueves.github.io/escaner-piso-planificador/';
+const enlacePiso = () => design?.sync ? WEB + '?piso=' + design.sync : '';
+function empujar(cada = 0) {
+  if (!sync) return;
+  if (cada) { if (Date.now() - empUlt < cada) return; empUlt = Date.now(); sync.enviar(serialize()); return; }
+  clearTimeout(empT); empT = setTimeout(() => sync?.enviar(serialize()), 80);
+}
+async function iniciarSincro(pisoData) {
+  if (!flat) return;
+  const nombre = flat.name, actLocal = design?.actualizado || '';
+  try {
+    estadoSincro('conectando');
+    const S = await import('./sincro.js');
+    if (!design.sync) { design.sync = S.nuevoId(); save(); }
+    const s = await S.conectar(design.sync, { nombre, dispositivo: DISPOSITIVO, recibir: aplicarRemoto, presencia: verPresencia, estado: estadoSincro });
+    if (!flat || flat.name !== nombre) return s.cerrar();
+    sync = s;
+    const rem = s.remoto();
+    if (rem && (s.actualizadoRemoto() || '') > actLocal) { aplicarRemoto(rem); toast('Diseño actualizado con el de tu otro dispositivo'); }
+    else s.enviar(serialize());
+    if (EN_APP && pisoData && !s.tieneEscaneo()) { await s.subirEscaneo(pisoData, cloud, t => estadoSincro('subiendo', t)); toast('Piso disponible en el ordenador'); }
+    estadoSincro('envivo');
+    try { const rec = (store.get('recientes') || []).filter(r => r.id !== design.sync); rec.unshift({ id: design.sync, nombre }); store.set('recientes', rec.slice(0, 8)); } catch {}
+  } catch (e) { console.warn('Sincronización', e); estadoSincro('error', e); }
+}
+function moverA(it, n) {
+  const ch = it.x !== n.x || it.z !== n.z || it.rot !== n.rot || (n.elev != null && it.elev !== n.elev) || (n.room != null && it.room !== n.room);
+  if (ch) { it.x = n.x; it.z = n.z; it.rot = n.rot; if (n.elev != null) it.elev = n.elev; if (n.room != null) it.room = n.room; it.libre = !!n.libre; place(it); }
+  return ch;
+}
+function aplicarRemoto(d) {
+  if (!flat || !d) return;
+  let cambio = false; const sel = selected ? slotIdOf(selected) : null;
+  (d.propios || []).forEach(p => { if (!products.has(p.id)) { if (!p.acabados) p.acabados = [{ id: 'propio', name: 'Propio', color: p.color || '#c9c2b4', price: p.price || 0, url: p.url || null }]; products.set(p.id, p); cambio = true; } });
+  flat.rooms.forEach(r => r.objects.forEach(o => {
+    const e = d.existentes?.[o.key]; if (!e) return; const it = items.find(i => i.existing === o.key);
+    if (e.removed) { if (it) { removeItem(it); cambio = true; } return; }
+    if (!it) { addItem(o.pid, r.i, e.x ?? o.x, e.z ?? o.z, e.rot ?? o.rot, { existing: o.key, elev: e.elev ?? 0, libre: e.libre }); cambio = true; return; }
+    if (drag?.it !== it && e.x != null && moverA(it, e)) cambio = true;
+  }));
+  const vistos = new Set();
+  for (const n of d.nuevos || []) {
+    vistos.add(String(n.uid)); if (!flat.rooms[n.room] || !products.get(n.pid)) continue;
+    let it = items.find(i => !i.existing && String(i.uid) === String(n.uid));
+    if (it && (it.pid !== n.pid || it.acabado !== n.acabado)) { removeItem(it); it = null; }
+    if (!it) { addItem(n.pid, n.room, n.x, n.z, n.rot, { uid: n.uid, elev: n.elev, acabado: n.acabado, replaces: n.replaces, libre: n.libre }); cambio = true; continue; }
+    if (drag?.it === it) continue;
+    if (moverA(it, n)) cambio = true;
+    if ((it.replaces || null) !== (n.replaces || null)) { it.replaces = n.replaces || null; cambio = true; }
+  }
+  for (const it of items.filter(i => !i.existing && !vistos.has(String(i.uid)))) { if (drag?.it === it) continue; removeItem(it); cambio = true; }
+  const pa = d.paredes || {}, act = { ...(design?.paredes || {}) };
+  for (const k of new Set([...Object.keys(pa), ...Object.keys(act)])) if (pa[k] !== act[k]) { pintarPared(k, pa[k] || null); cambio = true; }
+  if (!cambio) return;
+  reapoyarTodo(); refreshWarnings();
+  if (sel && !selected) { const it = items.find(i => slotIdOf(i) === sel); if (it) select(it, false); }
+  renderPanel(); verPresencia(ultPres);
+  const sid = design?.sync; design = serialize(); design.sync = sid; store.set('diseno:' + flat.name, design);
+  if (EN_APP) { try { window.webkit.messageHandlers.guardar.postMessage(JSON.stringify(design)); } catch {} }
+}
+let ultPres = []; const presCajas = [];
+function verPresencia(otros) {
+  ultPres = otros || [];
+  presCajas.splice(0).forEach(b => scene.remove(b));
+  for (const o of ultPres) { const it = o.sel && items.find(i => slotIdOf(i) === o.sel); if (!it) continue;
+    const b = new THREE.Box3Helper(new THREE.Box3().setFromObject(it.obj), 0x2b7de9); b.userData.it = it; scene.add(b); presCajas.push(b); }
+  pintarChip();
+}
+let estSincro = 'apagado', estTexto = '';
+function estadoSincro(e, info) {
+  estSincro = e; estTexto = e === 'subiendo' ? info : e === 'error' ? (info?.message || String(info || '')) : '';
+  pintarChip();
+}
+function pintarChip() {
+  const c = $('envivo'); if (!c) return;
+  const txt = { conectando: 'Conectando…', envivo: 'En vivo', sinconexion: 'Sin conexión · se guarda y se envía al volver', subiendo: estTexto, error: 'Sin sincronizar' }[estSincro];
+  c.hidden = !txt; c.className = 'envivo ' + estSincro;
+  const otros = [...new Set(ultPres.map(o => o.nombre))];
+  c.innerHTML = '<i></i>' + esc(txt || '') + (estSincro === 'envivo' && otros.length ? ' · ' + esc(otros.join(', ')) + ' conectado' : '');
+  c.title = estSincro === 'error' ? estTexto : '';
+  const l = $('enlaceVivo'); if (l) { const u = enlacePiso(); l.value = u; $('vivoBox').hidden = !u; }
+}
 
 // ---- Drive (versión web, con el conector de Google Drive) ----
 const drive = {
@@ -1293,6 +1390,7 @@ $('syncNow').onclick = async () => { if (!flat) return toast('Abre primero un pi
 // ================= Carga de proyectos =================
 async function loadProject({ name, piso, ply, savedDesign }) {
   $('loadMsg').textContent = 'Construyendo el modelo…'; $('carga').style.display = 'grid'; $('hoja').classList.remove('abierta');
+  sync?.cerrar(); sync = null; verPresencia([]);
   const paso = async t => { $('loadMsg').textContent = t; await new Promise(r => setTimeout(r, 30)); };
   try {
   await paso('Leyendo la nube de puntos…');
@@ -1301,11 +1399,12 @@ async function loadProject({ name, piso, ply, savedDesign }) {
   await Promise.race([modelsReady.catch(() => {}), new Promise(r => setTimeout(r, 8000))]);   // si los modelos tardan, sigo sin ellos
   await paso('Construyendo el piso…');
   buildFlat(piso); renderRooms();
-  let d = savedDesign || null; const local = store.get('diseno:' + name); if (local && (!d || local.actualizado > d.actualizado)) d = local;
+  let d = savedDesign || null; const local = store.get('diseno:' + name); if (local && (!d || local.actualizado > d.actualizado)) d = local; if (d && !d.sync && savedDesign?.sync) d = { ...d, sync: savedDesign.sync };
   await paso('Colocando los muebles…');
   applyDesign(d); setRoom(-1);
   } catch (e) { console.error(e); $('loadMsg').innerHTML = 'No se pudo construir el modelo.<br><small>' + esc(String(e?.stack || e).split('\n').slice(0, 3).join(' · ')) + '</small>'; return; }
   $('carga').style.display = 'none';
+  if (name !== 'piso_ejemplo') iniciarSincro(piso);
   if (!EN_APP) { const remote = await drive.pull(); if (remote && (!d || remote.actualizado > d.actualizado)) { applyDesign(remote); setRoom(currentRoom, false); toast('Diseño actualizado desde Drive'); } }
 }
 async function loadZip(buf, fallbackName) {
@@ -1318,11 +1417,22 @@ async function loadZip(buf, fallbackName) {
 $('zipInput').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { await loadZip(await f.arrayBuffer(), f.name); toast('Piso cargado'); } catch (err) { $('carga').style.display = 'none'; toast('No se pudo abrir: ' + err.message); } };
 $('demoBtn').onclick = async () => { try { const r = await fetch('demo.json'); await loadProject({ name: 'piso_ejemplo', piso: await r.json(), ply: null }); } catch { toast('No se pudo cargar el ejemplo'); } };
 
+$('copiarVivo').onclick = async () => { const u = enlacePiso(); if (!u) return; try { await navigator.clipboard.writeText(u); toast('Enlace copiado'); } catch { $('enlaceVivo').select(); toast('Cópialo del cuadro'); } };
+// Web: abrir un piso en vivo con ?piso=… (o el último abierto)
+async function abrirPisoVivo(id) {
+  $('carga').style.display = 'grid'; $('loadMsg').textContent = 'Conectando con tu piso…';
+  try {
+    const S = await import('./sincro.js'), r = await S.descargarPiso(id, t => $('loadMsg').textContent = t);
+    await loadProject({ name: r.nombre, piso: r.piso, ply: r.ply, savedDesign: r.diseno ? { ...r.diseno, sync: id } : { sync: id } });
+    history.replaceState(null, '', '?piso=' + id);
+  } catch (e) { $('loadMsg').innerHTML = 'No se pudo abrir el piso en vivo.<br><small>' + esc(e.message || String(e)) + '</small>'; }
+}
 // ================= Arranque =================
 resize();
 $('verNote').textContent = 'Versión del planificador: ' + PLANNER_VERSION;
-renderer.setAnimationLoop(() => { try { controls.update(); if (flat?.rooms && viewMode === '3d' && !ui.paredes) updateWalls(); if (selected) selBox.setFromObject(selected.obj); renderer.render(scene, camera); } catch (e) { if (!window.__errLoop) { window.__errLoop = 1; console.error(e); } } });
-window.__planner = { exportarAR: () => exportarAR(), loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
+if (!EN_APP) { const id = new URLSearchParams(location.search).get('piso'); if (id) abrirPisoVivo(id); }
+renderer.setAnimationLoop(() => { try { controls.update(); if (flat?.rooms && viewMode === '3d' && !ui.paredes) updateWalls(); if (selected) selBox.setFromObject(selected.obj); for (const b of presCajas) b.box.setFromObject(b.userData.it.obj); renderer.render(scene, camera); } catch (e) { if (!window.__errLoop) { window.__errLoop = 1; console.error(e); } } });
+window.__planner = { exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
 if (EN_APP) {
   $('webOnly').style.display = 'none'; $('closeBtn').hidden = false;
   $('closeBtn').onclick = () => { save(); try { window.webkit.messageHandlers.cerrar.postMessage(''); } catch {} };
