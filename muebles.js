@@ -222,10 +222,11 @@ function silla(g, W, D, H, c, o) {
     case 'trineo': for (const s of [-1, 1]) { const x = s * (W / 2 - .04); barra(g, [x, 0, D / 2 - .03], [x, 0, -D / 2 + .05], .01, sec); barra(g, [x, 0, D / 2 - .03], [x, seatY, D / 2 - .06], .01, sec); barra(g, [x, 0, -D / 2 + .05], [x, seatY, -D / 2 + .06], .01, sec); } break;
     case 'estrella': { const mm = METAL('#2b2b2b'); for (let i = 0; i < 5; i++) { const a = i * Math.PI * 2 / 5; barra(g, [0, .06, 0], [Math.cos(a) * W * .45, .04, Math.sin(a) * D * .45], .015, mm); } cil(g, .025, .025, seatY - .1, mm, 0, .05, 0); break; }
     case 'S': for (const s of [-1, 1]) tubo(g, [[s * (W / 2 - .05), 0, D / 2 - .05], [s * (W / 2 - .05), .02, -D / 2 + .08], [s * (W / 2 - .05), seatY - .05, D / 2 - .1], [s * (W / 2 - .05), seatY, -D / 2 + .05]], .012, sec); break;
-    default: patas(g, W - .02, D - .02, seatY - .03, sec, o.patas === 'conica' ? 'conica' : 'cuadrada', o.asiento === 'redondo' ? W * .2 : .035);
+    default: if (o.respaldo === 'ninguno') { const r = o.asiento === 'redondo' ? Math.min(W, D) * .36 : 0; for (let i = 0; i < 4; i++) { const a = Math.PI / 4 + i * Math.PI / 2, rx = r || W / 2 - .04, rz = r || D / 2 - .04; barra(g, [Math.cos(a) * rx, seatY - .04, Math.sin(a) * rz], [Math.cos(a) * (rx + .04), 0, Math.sin(a) * (rz + .04)], .014, sec); } }
+      else patas(g, W - .02, D - .02, seatY - .03, sec, o.patas === 'conica' ? 'conica' : 'cuadrada', o.asiento === 'redondo' ? W * .2 : .035);
   }
   const seatM = o.asiento === 'tapizado' ? tela : (o.asiento === 'plastico' ? M(c, { madera: false, roughness: .4 }) : m);
-  if (o.asiento === 'redondo') { const k = cil(g, .5, .5, .05, tela, 0, seatY - .05, .02, 36); k.scale.set(W * .95, 1, D * .9); }
+  if (o.asiento === 'redondo') { const k = cil(g, .5, .5, o.respaldo === 'ninguno' ? .045 : .05, o.respaldo === 'ninguno' ? seatM : tela, 0, seatY - .05, o.respaldo === 'ninguno' ? 0 : .02, 36); k.scale.set(W * .95, 1, D * (o.respaldo === 'ninguno' ? .95 : .9)); }
   else rcaja(g, W, o.asiento === 'tapizado' ? .07 : .035, D - .02, o.asiento === 'plastico' ? .02 : .012, seatM, 0, seatY - .04, .01);
   const bz = -D / 2 + .03, bh = H - seatY;
   if (o.respaldo === 'ninguno' && H > .6) { const y = H * .38; for (const [a, b] of [[[-1, -1], [1, -1]], [[1, -1], [1, 1]], [[1, 1], [-1, 1]], [[-1, 1], [-1, -1]]]) barra(g, [a[0] * (W / 2 - .06), y, a[1] * (D / 2 - .06)], [b[0] * (W / 2 - .06), y, b[1] * (D / 2 - .06)], .009, sec); }
@@ -441,6 +442,17 @@ function armario(g, W, D, H, c, o) {
 function muebleTV(g, W, D, H, c, o) {
   const m = M(c), dark = M(new THREE.Color(c).multiplyScalar(.82).getStyle()), metal = METAL('#555');
   switch (o.t) {
+    case 'torres': { // mueble de TV con estanterías/armarios altos a los lados (HAVSTA, VIHALS, HEMNES, BRIMNES…)
+      const tw = Math.min(.6, W * .22), bh = Math.min(.55, H * .4), t = .018;
+      caja(g, W - 2 * tw, bh, D, m, 0, .05, 0); caja(g, W - 2 * tw - .04, .05, D - .04, dark, 0, 0, 0);
+      const n = Math.max(2, Math.round((W - 2 * tw) / .6)); for (let i = 0; i < n; i++) { const x = -(W - 2 * tw) / 2 + (i + .5) * (W - 2 * tw) / n; caja(g, (W - 2 * tw) / n - .008, bh - .04, .016, m, x, .07, D / 2 - .006); tirador(g, 'pomo', x, .05 + bh * .6, D / 2, metal); }
+      for (const sx of [-1, 1]) { const x = sx * (W / 2 - tw / 2), d2 = Math.min(D, .42);
+        caja(g, tw, H, t, m, x, 0, -D / 2 + t / 2); for (const e of [-1, 1]) caja(g, t, H, d2, m, x + e * (tw / 2 - t / 2), 0, -D / 2 + d2 / 2); caja(g, tw, t, d2, m, x, H - t, -D / 2 + d2 / 2);
+        caja(g, tw - .01, H * .42, .016, m, x, .02, -D / 2 + d2 - .008); tirador(g, 'pomo', x + tw * .3, H * .3, -D / 2 + d2, metal);
+        const nb = 3; for (let k = 1; k <= nb; k++) caja(g, tw - 2 * t, .016, d2 - .03, m, x, H * .44 + k * (H * .54) / (nb + 1), -D / 2 + d2 / 2);
+        if (o.vidrio) caja(g, tw - .03, H * .54, .004, VIDRIO(), x, H * .44, -D / 2 + d2 - .004); }
+      if (H > 1.4) caja(g, W - 2 * tw + .02, .03, Math.min(D, .3), m, 0, H - .03, -D / 2 + .15);
+      break; }
     case 'besta': { // banco bajo + muebles de pared y baldas
       const bh = H > 1 ? Math.min(.48, H * .32) : H - .02; caja(g, W, bh, D, m, 0, .02, 0); caja(g, W - .04, .02, D - .04, dark, 0, 0, 0);
       const n = Math.round(W / .6); for (let i = 0; i < n; i++) caja(g, W / n - .006, bh - .01, .018, m, -W / 2 + (i + .5) * W / n, .025, D / 2 - .009);
@@ -475,7 +487,10 @@ export function construir(p, acabado) {
   const nombre = acabado?.name || '';
   let [c1, c2] = nombre.split('/').map(s => colorDe(s.trim(), null));
   // el color real, sacado de la foto del producto, manda sobre el que se deduce del nombre
-  const cf = acabado?.colorFoto; if (cf) { c1 = cf; if (c2 && acabado.colorFoto2) c2 = acabado.colorFoto2; }
+  let cf = acabado?.colorFoto;
+  if (cf) { const lum = new THREE.Color(cf).getHSL({}).l, primero = nombre.split('/')[0].toLowerCase();   // si la foto contradice un negro o blanco claro del nombre, manda el nombre
+    if ((/^negro|^antracita/.test(primero) && lum > .45) || (/^blanco/.test(primero) && lum < .5)) cf = null; }
+  if (cf) { c1 = cf; if (c2 && acabado.colorFoto2) c2 = acabado.colorFoto2; }
   const o = { ...st }; if (p.forma) o.forma = p.forma;
   if (/puertas/i.test(nombre)) o.puertas = true;
   let c = st.color || c1 || acabado?.color || '#b8b2a6';
@@ -516,7 +531,12 @@ export function construir(p, acabado) {
       else usar(new THREE.CanvasTexture(laminaGenerada(nombre + (acabado?.url || ''), W / H)));
       break; }
     case 'perchero': { const m = M(c); cil(g, .17, .19, .03, m, 0, 0, 0, 24); cil(g, .015, .015, H - .03, m, 0, .03, 0, 10); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; barra(g, [0, H - .2, 0], [Math.cos(a) * .2, H - .08, Math.sin(a) * .2], .01, m); } break; }
-    case 'puf': { const t = M(c, { tela: true }); if (o.redondo) { const k = cil(g, .5, .5, H, t, 0, 0, 0, 36); k.scale.set(W, 1, D); } else rcaja(g, W, H, D, Math.min(.08, H / 3), t, 0, 0, 0, 4); break; }
+    case 'puf': if (o.patas) { // reposapiés y bancos tapizados: cojín sobre patas
+        const t = M(c, { tela: true }), lh = Math.min(.22, H * .45), pm = M(o.colorPatas || '#6b4a32', { madera: true });
+        if (o.patas === 'poang') { for (const sx of [-1, 1]) tubo(g, [[sx * (W / 2 - .03), 0, D / 2 - .03], [sx * (W / 2 - .03), lh * .3, 0], [sx * (W / 2 - .03), lh, -D / 2 + .05], [sx * (W / 2 - .03), 0, -D / 2 + .03]], .018, pm); }
+        else patas(g, W - .06, D - .06, lh, pm, 'conica', .04);
+        rcaja(g, W, H - lh, D, Math.min(.06, (H - lh) / 3), t, 0, lh, 0, 4); break; }
+      { const t = M(c, { tela: true }); if (o.redondo) { const k = cil(g, .5, .5, H, t, 0, 0, 0, 36); k.scale.set(W, 1, D); } else rcaja(g, W, H, D, Math.min(.08, H / 3), t, 0, 0, 0, 4); break; }
     case 'alfombra': {
       const idF = (acabado?.img || '').split('/').pop().replace(/_s\d\.jpg.*/, ''), b64 = (window.FOTOS_ALFOMBRAS || {})[idF];
       const mat = b64 ? new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 }) : M(c, { tela: true });
@@ -527,6 +547,7 @@ export function construir(p, acabado) {
       break; }
     case 'espejo': if (o.redondo || Math.abs(W - H) < .01 && /redond/.test(nombre)) { const fr = cil(g, .5, .5, .03, M(o.color2 || c), 0, 0, 0, 48); fr.scale.set(W, 1, H); fr.rotation.x = Math.PI / 2; fr.position.set(0, H / 2, -D / 2 + .015); const e = new THREE.Mesh(new THREE.CircleGeometry(.5, 48), vidrioEspejo()); e.scale.set(W - .04, H - .04, 1); e.position.set(0, H / 2, -D / 2 + .031); g.add(e); break; }
     { rcaja(g, W, H, .03, .01, M(o.color2 || c), 0, 0, -D / 2 + .015); const e = new THREE.Mesh(new THREE.PlaneGeometry(W - .06, H - .06), vidrioEspejo()); e.position.set(0, H / 2, -D / 2 + .031); g.add(e); break; }
+    case 'mesilla': mesilla(g, W, D, H, c, o); break;
     case 'cortina': cortina(g, W, D, H, c, o); break;
     case 'estor': estor(g, W, D, H, c, o); break;
     case 'radiador': radiador(g, W, D, H, c, o); break;
@@ -792,4 +813,16 @@ function guitarra(g, W, D, H, c, o) {  // acústica o eléctrica, en soporte de 
   for (let i = 0; i < 6; i++) caja(g, .0012, fin - ini + cuerpo * .55, .001, METAL('#dcdcdc'), -.015 + i * .006, base + cuerpo * .4, grosor * .2 + .017);
   if (o.pared) { caja(g, .07, .04, .05, oscuro, 0, largo - .02, -D / 2 + .025); }
   else { const m = METAL('#262626'); barra(g, [-.18, 0, .12], [0, .45, -.04], .009, m); barra(g, [.18, 0, .12], [0, .45, -.04], .009, m); barra(g, [0, 0, -.2], [0, .45, -.04], .009, m); barra(g, [-.12, .1, .07], [.12, .1, .07], .012, M('#262626', { madera: false })); }
+}
+
+// mesita de noche: tablero, cajón bajo el tablero, balda abierta abajo y patas finas (BJÖRKSNÄS, HEMNES, NORDKISA, IDANÄS…)
+function mesilla(g, W, D, H, c, o) {
+  const m = M(c), pm = o.colorPatas ? M(o.colorPatas) : m, lt = .028;
+  if (o.cerrada) { rcaja(g, W, H - .08, D, .006, m, 0, .08, 0); patas(g, W - .02, D - .02, .08, pm, 'cuadrada', .02); for (let i = 0; i < 2; i++) { caja(g, W - .03, (H - .12) / 2 - .01, .015, m, 0, .1 + i * (H - .1) / 2, D / 2); tirador(g, o.tirador || 'pomo', 0, .1 + (i + .5) * (H - .1) / 2, D / 2 + .008, METAL('#8a8a8a')); } return; }
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) caja(g, lt, H - .02, lt, pm, sx * (W / 2 - lt / 2 - .005), 0, sz * (D / 2 - lt / 2 - .005));
+  rcaja(g, W, .022, D, .004, m, 0, H - .022, 0);
+  const ch = Math.min(.15, H * .22); caja(g, W - .04, ch, D - .04, m, 0, H - .022 - ch, -.01); caja(g, W - .07, ch - .02, .015, m, 0, H - .022 - ch + .01, D / 2 - .03);
+  tirador(g, o.tirador || 'pomo', 0, H - .022 - ch / 2, D / 2 - .02, METAL('#8a8a8a'));
+  caja(g, W - .04, .018, D - .04, m, 0, H * .2, 0);
+  if (o.balda2) caja(g, W - .04, .018, D - .04, m, 0, H * .5, 0);
 }

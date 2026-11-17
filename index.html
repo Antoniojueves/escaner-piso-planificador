@@ -285,7 +285,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-2';
+const PLANNER_VERSION = '2026.11.18-3';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -368,7 +368,7 @@ const RUTA_FICHA = 'https://www.ikea.com/es/es/p/', FOTO = 'https://www.ikea.com
     const id = im.src.slice(FOTO.length).replace(/_s\d\.jpg.*/, ''); lote(djb(id) % 8).then(m => { if (m[id] && im.src.startsWith(FOTO + id)) im.src = 'data:image/jpeg;base64,' + m[id]; else if (!m[id]) im.style.visibility = 'hidden'; }); }, true); }
 function hash(t) { let h = 5381; for (let i = 0; i < t.length; i++) h = (h * 33 ^ t.charCodeAt(i)) >>> 0; return h.toString(36); }
 const DEF_DIM = { sofa: [220, 95, 83], armchair: [80, 85, 90], pouf: [50, 50, 42], bench: [110, 38, 45], chair: [45, 52, 82], dining: [140, 80, 75], coffee: [90, 55, 45], side: [50, 50, 50], desk: [120, 60, 75],
-  shelf: [80, 30, 180], storage: [80, 40, 90], tvunit: [160, 40, 50], wardrobe: [100, 60, 200], dresser: [80, 48, 80], bedside: [45, 40, 55], bed: [160, 200, 100], wallshelf: [80, 25, 4], lampPie: [40, 40, 150], lampMesa: [25, 25, 45], lampTecho: [40, 40, 90], rug: [160, 230, 1], mirror: [60, 4, 120] };
+  shelf: [80, 30, 180], storage: [80, 40, 90], tvunit: [160, 40, 50], wardrobe: [100, 60, 200], dresser: [80, 48, 80], bedside: [45, 40, 66], bed: [160, 200, 100], wallshelf: [80, 25, 4], lampPie: [40, 40, 150], lampMesa: [25, 25, 45], lampTecho: [40, 40, 90], rug: [160, 230, 1], mirror: [60, 4, 120] };
 const KIND_DE = { sofa: 'sofa', armchair: 'armchair', pouf: 'box', bench: 'table', chair: 'chair', dining: 'table', coffee: 'table', side: 'table', desk: 'desk', shelf: 'shelf', storage: 'box', tvunit: 'tvunit', wardrobe: 'wardrobe', dresser: 'dresser', bedside: 'dresser', bed: 'bed', wallshelf: 'wallshelf', lampPie: 'lampara', lampMesa: 'lampara', lampTecho: 'lampara', rug: 'box', mirror: 'box' };
 function medidas(fam, tipo, m) {
   const t = tipo.toLowerCase(), n = (m || '').replace(/cm|\s/g, '').split('x').filter(Boolean).map(x => parseFloat(x.split('/')[0])).filter(x => x > 0);
@@ -448,7 +448,7 @@ function estiloGenerico(fam, tipo, dim) {
     case 'tvunit': return { f: 'tv', t: dim.h > 100 ? 'besta' : 'brimnes' };
     case 'wardrobe': return /vitrina/.test(t) ? { f: 'armario', vitrina: true } : { f: 'armario' };
     case 'dresser': return /aparador|armario|combinaci|mueble/.test(t) ? { f: 'armario', puertas: Math.max(2, Math.round(dim.w / 60)) } : { f: 'comoda', filas: dim.h > 110 ? 5 : dim.h > 75 ? 4 : 3, cols: dim.w > 100 ? 2 : 1, tirador: 'barra', zocalo: .05 };
-    case 'bedside': return { f: 'comoda', filas: 2, tirador: 'pomo', patas: .1 };
+    case 'bedside': return /pared/.test(t) ? { f: 'comoda', filas: 1, tirador: 'pomo' } : /cajones|2 caj/.test(t) ? { f: 'mesilla', cerrada: true } : { f: 'mesilla' };
     case 'bed': return /tapiz|canap/.test(t) ? { f: 'cama', t: 'tapizada', base: .4, cabeceroT: .1 } : { f: 'cama', t: 'tablero', base: .35, cabeceroT: .08, cajones: /caj/.test(t) ? 4 : 0 };
     case 'wallshelf': return { f: 'balda' };
     case 'lampPie': return { f: 'lampara', t: 'clasica', metal: 'negro' };
@@ -641,7 +641,19 @@ for (const p of products.values()) { if (p.fam !== 'armchair' || p.kind === 'glb
 for (const p of products.values()) { if (p.kind === 'glb' || !['storage', 'wardrobe', 'dresser', 'shelf'].includes(p.fam)) continue; const n = p.name.toLowerCase();
   if (/perchero/.test(n)) p.estilo = { f: 'perchero' };
   else if (/\barmario\b/.test(n) && !/combinaci|cajones/.test(n) && p.estilo?.f === 'comoda') p.estilo = { f: 'armario', puertas: Math.max(1, Math.round(p.w / 60)) };
+  if (/oxberg/.test(n) && p.estilo && ['armario', 'combi', 'libreria'].includes(p.estilo.f)) p.estilo = { f: 'armario', vitrina: true, enteras: true, puertas: Math.max(1, Math.round(p.w / 40)) };
   if (/vitrina|puertas? de vidrio|puerta de cristal/.test(n) && p.estilo && ['armario', 'combi', 'libreria'].includes(p.estilo.f)) p.estilo = { ...p.estilo, f: 'armario', vitrina: true, enteras: p.estilo.enteras || /billy|oxberg/.test(n), puertas: Math.max(1, Math.round(p.w / 45)) }; }
+// Mesitas de noche, reposapiés y bancos tapizados (revisados contra la foto de IKEA)
+for (const p of products.values()) { if (p.kind === 'glb') continue; const n = p.name.toLowerCase();
+  if (p.fam === 'bedside' && p.estilo?.f === 'comoda' && !/pared|cajones/.test(n)) p.estilo = { f: 'mesilla' };
+  if (p.fam === 'bedside' && p.approx && p.h < 60) p.h = 66;
+  if ((p.fam === 'pouf' || p.fam === 'bench') && /reposapi|banco/.test(n) && !/almacenaje|arc[oó]n/.test(n)) p.estilo = { f: 'puf', patas: /poäng/.test(n) ? 'poang' : true };
+  if (p.fam === 'side' && /stockholm/.test(n) && /auxiliar/.test(n)) p.estilo = { ...(p.estilo || { f: 'mesa' }), f: 'mesa', patas: 'pie', forma: 'redonda' }; }
+// Muebles de TV con estanterías a los lados, estantes de pared abiertos y plafones
+for (const p of products.values()) { if (p.kind === 'glb') continue; const n = p.name.toLowerCase();
+  if (p.fam === 'tvunit' && p.estilo?.f === 'tv' && /estanter|almacenaje|vitrina/.test(n) && !/best[aå]|eket|boastad/.test(n) && p.w > 180 && p.h > 100) p.estilo = { ...p.estilo, t: 'torres', vidrio: /vitrina|vidrio/.test(n) };
+  if (p.fam === 'wallshelf' && p.h > 30) p.estilo = { f: 'libreria', abierta: true, ...(/lindåsen|förgsättare|metal/.test(n) ? { metal: 'negro' } : {}) };
+  if (p.fam === 'lampTecho' && /plaf[oó]n|techo\/pared|led para techo/.test(n) && p.estilo?.f === 'lampara') p.estilo = { ...p.estilo, t: 'plafon' }; }
 // Colores reales de cada acabado, sacados de su foto de IKEA (colores_fotos.js)
 { const CF = window.COLORES_FOTOS || {};
   for (const p of products.values()) for (const a of p.acabados || []) { const k = (a.img || '').split('/').pop().replace(/_s\d\.jpg.*/, '').split('__').pop(), v = k && CF[k];
