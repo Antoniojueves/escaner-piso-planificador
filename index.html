@@ -286,7 +286,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-7';
+const PLANNER_VERSION = '2026.11.18-8';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -1011,7 +1011,8 @@ function pintarSuelos() {
   el.innerHTML = SUELOS.map(S => `<button class="suelo${S.id === cur ? ' sel' : ''}" data-s="${S.id}" title="${S.nombre}"><i style="background:${S.muestra || 'linear-gradient(135deg,#ddd,#999)'}"></i><span>${S.nombre}</span></button>`).join('');
   el.querySelectorAll('button').forEach(b => b.onclick = () => { ponerSuelo(currentRoom, b.dataset.s); changed(); });
 }
-function place(it) { it.y = flat.rooms[it.room].floorY + it.elev; it.obj.position.set(it.x, it.y, it.z); it.obj.rotation.y = it.rot; }
+function place(it) { const pt = products.get(it.pid); if (pt?.techo && !it.libre) it.elev = Math.max(0, flat.rooms[it.room].height - it.obj.userData.size.H);   // lo que cuelga del techo, siempre pegado al techo
+  it.y = flat.rooms[it.room].floorY + it.elev; it.obj.position.set(it.x, it.y, it.z); it.obj.rotation.y = it.rot; }
 function removeItem(it) { furnGroup.remove(it.obj); items = items.filter(i => i !== it); if (selected === it) select(null); }
 function rebuild(it) { const vis = it.obj.visible; furnGroup.remove(it.obj); it.obj = modelFor(products.get(it.pid), it.acabado); sombraContacto(it.obj, products.get(it.pid)); it.obj.userData.item = it; it.obj.visible = vis; furnGroup.add(it.obj); place(it); }
 
@@ -2085,6 +2086,11 @@ function aToon(m) {
 }
 const reales = [];
 function pintar() {
+  // en la vista de planta, lo que cuelga del techo se oculta para ver el suelo
+  const ocultos = viewMode === 'plan' ? items.filter(i => i.obj.visible && products.get(i.pid)?.techo) : []; ocultos.forEach(i => i.obj.visible = false);
+  try { pintarEscena(); } finally { ocultos.forEach(i => i.obj.visible = true); }
+}
+function pintarEscena() {
   if (!estiloDibujo) { renderer.render(scene, camera); return; }
   scene.traverse(o => { if (o.isMesh && o.material) { reales.push(o, o.material); o.material = Array.isArray(o.material) ? o.material.map(aToon) : aToon(o.material); } });
   try { renderer.render(scene, camera); } finally { for (let i = 0; i < reales.length; i += 2) reales[i].material = reales[i + 1]; reales.length = 0; }
