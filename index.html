@@ -285,7 +285,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-1';
+const PLANNER_VERSION = '2026.11.18-2';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -638,9 +638,10 @@ for (const p of products.values()) { if (p.fam !== 'armchair' || p.kind === 'glb
   const t = /^(LILLESÄTER|STOCKHOLM)/.test(n) ? 'redondo' : /^HERRÅKRA/.test(n) ? 'concha' : /^(ÅRSUNDA|POÄNG)/.test(n) ? 'poang' : /^DYVLINGE/.test(n) ? 'giratorio' : null;
   if (t) p.estilo = { ...(e || { f: 'sillon' }), f: 'sillon', t }; }
 // Almacenaje según lo que dice el nombre (manda sobre el estilo de la serie)
-for (const p of products.values()) { if (p.kind === 'glb' || !['storage', 'wardrobe', 'dresser'].includes(p.fam)) continue; const n = p.name.toLowerCase();
+for (const p of products.values()) { if (p.kind === 'glb' || !['storage', 'wardrobe', 'dresser', 'shelf'].includes(p.fam)) continue; const n = p.name.toLowerCase();
   if (/perchero/.test(n)) p.estilo = { f: 'perchero' };
-  else if (/\barmario\b/.test(n) && !/combinaci|cajones/.test(n) && p.estilo?.f === 'comoda') p.estilo = { f: 'armario', puertas: Math.max(1, Math.round(p.w / 60)) }; }
+  else if (/\barmario\b/.test(n) && !/combinaci|cajones/.test(n) && p.estilo?.f === 'comoda') p.estilo = { f: 'armario', puertas: Math.max(1, Math.round(p.w / 60)) };
+  if (/vitrina|puertas? de vidrio|puerta de cristal/.test(n) && p.estilo && ['armario', 'combi', 'libreria'].includes(p.estilo.f)) p.estilo = { ...p.estilo, f: 'armario', vitrina: true, enteras: p.estilo.enteras || /billy|oxberg/.test(n), puertas: Math.max(1, Math.round(p.w / 45)) }; }
 // Colores reales de cada acabado, sacados de su foto de IKEA (colores_fotos.js)
 { const CF = window.COLORES_FOTOS || {};
   for (const p of products.values()) for (const a of p.acabados || []) { const k = (a.img || '').split('/').pop().replace(/_s\d\.jpg.*/, '').split('__').pop(), v = k && CF[k];

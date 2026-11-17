@@ -426,11 +426,15 @@ function texturaB64(b64, listo) {
 }
 function armario(g, W, D, H, c, o) {
   const m = M(c), puertaM = o.colorPuerta ? M(o.colorPuerta) : m, metal = METAL('#9a9a9a');
-  caja(g, W, H, D - .02, m, 0, 0, -.01);
+  if (o.vitrina) {   // vitrina: cuerpo hueco con baldas para que se vea el interior a través del cristal
+    const t = .018; caja(g, W, H, t, m, 0, 0, -D / 2 + t / 2); for (const sx of [-1, 1]) caja(g, t, H, D - .02, m, sx * (W / 2 - t / 2), 0, -.01);
+    caja(g, W, t, D - .02, m, 0, H - t, -.01); caja(g, W, .08, D - .02, m, 0, 0, -.01);
+    const nb = Math.max(2, Math.round(H / .38)); for (let i = 1; i < nb; i++) caja(g, W - 2 * t, .015, D - .06, m, 0, .08 + i * (H - .1) / nb, -.03);
+  } else caja(g, W, H, D - .02, m, 0, 0, -.01);
   const n = o.puertas ?? Math.max(1, Math.round(W / .5)), pw = W / n;
   for (let i = 0; i < n; i++) {
     const x = -W / 2 + (i + .5) * pw;
-    if (o.vitrina) { const dh = H * .62; caja(g, pw - .01, H - dh - .1, .02, puertaM, x, .08, D / 2 - .02); tirador(g, 'pomo', x, .08 + (H - dh - .1) / 2, D / 2, metal); rcaja(g, pw - .01, dh - .02, .02, .004, puertaM, x, H - dh, D / 2 - .02); caja(g, pw - .09, dh - .1, .006, VIDRIO(), x, H - dh + .04, D / 2 - .005); }
+    if (o.vitrina) { const dh = o.enteras ? H - .1 : H * .62; if (!o.enteras) { caja(g, pw - .01, H - dh - .1, .02, puertaM, x, .08, D / 2 - .02); tirador(g, 'pomo', x, .08 + (H - dh - .1) / 2, D / 2, metal); } const y0 = H - dh, fw = .04; caja(g, pw - .01, fw, .02, puertaM, x, y0, D / 2 - .02); caja(g, pw - .01, fw, .02, puertaM, x, H - .02 - fw, D / 2 - .02); for (const sx of [-1, 1]) caja(g, fw, dh - .02, .02, puertaM, x + sx * (pw / 2 - .005 - fw / 2), y0, D / 2 - .02); caja(g, pw - .01 - 2 * fw, dh - .02 - 2 * fw, .004, VIDRIO(), x, y0 + fw, D / 2 - .02); if (o.enteras) tirador(g, 'pomo', x + (i % 2 ? -1 : 1) * (pw / 2 - .07), H * .5, D / 2, metal); }
     else { caja(g, pw - .006, H - .02, .02, puertaM, x, .01, D / 2 - .02); tirador(g, o.tirador || 'barra', x + (i % 2 ? -1 : 1) * (pw / 2 - .05), H * .5, D / 2, metal, .3); }
   }
 }
