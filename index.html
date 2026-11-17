@@ -106,7 +106,7 @@ body { -webkit-font-smoothing:antialiased; }
 .accionesSala { display:grid; gap:8px; margin:6px 0 4px; } .accionesSala .rojo { border:0; background:var(--acento); color:#fff; border-radius:12px; padding:11px 14px; font-weight:650; text-align:left; font-size:14.5px; box-shadow:0 2px 8px rgba(154,59,42,.25); } .accionesSala .rojo:active { transform:scale(.99); }
 .filas { display:grid; gap:6px; } .fila-m { display:grid; grid-template-columns:44px 1fr auto; gap:10px; align-items:center; text-align:left; background:#fff; border:1px solid var(--linea); border-radius:12px; padding:7px 10px 7px 7px; } .fila-m img, .fila-m i { width:44px; height:44px; object-fit:contain; border-radius:8px; display:block; } .fila-m i { border:1px solid rgba(0,0,0,.08); } .fila-m span { min-width:0; } .fila-m b { display:block; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .fila-m small { color:var(--suave); font-size:12px; } .fila-m em { font-style:normal; font-variant-numeric:tabular-nums; } .fila-m.quitado { opacity:.6; }
 .cabSel { padding:4px 0 6px; } .actual { display:flex; gap:10px; align-items:center; background:#fff; border:1px solid var(--acento); border-radius:12px; padding:8px; } .actual img, .actual i { width:54px; height:54px; object-fit:contain; border-radius:8px; flex:none; } .actual > div { flex:1; min-width:0; } .actual small { display:block; color:var(--acento); font-size:11px; letter-spacing:.05em; text-transform:uppercase; font-weight:700; } .actual b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .actual span { font-size:12.5px; color:var(--suave); } .cabSel .acabados { padding:8px 0 0; } .cabSel .buscar { margin:8px 0 0; } .cabSel a.boton { text-decoration:none; color:inherit; font-size:13px; }
-.catnav { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:6px 0 4px; } .catnav::-webkit-scrollbar { display:none; } .catnav button { flex:none; border:1px solid var(--linea); background:#fff; border-radius:999px; padding:5px 11px; font-size:12.5px; } .catnav button.sel { background:var(--tinta); color:#fff; border-color:var(--tinta); }
+.catnav { display:flex; flex-wrap:wrap; gap:5px; padding:6px 0 4px; } .catnav::-webkit-scrollbar { display:none; } .catnav button { flex:none; border:1px solid var(--linea); background:#fff; border-radius:999px; padding:5px 11px; font-size:12.5px; } .catnav button.sel { background:var(--tinta); color:#fff; border-color:var(--tinta); }
 .catsec h4 { margin:12px 2px 6px; font-size:13px; letter-spacing:.04em; text-transform:uppercase; color:var(--suave); } .catsec h4 small { font-weight:400; } .catsec[hidden], .tarj[hidden] { display:none; }
 .rejilla { display:grid; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); gap:7px; } .tarj { background:#fff; border:1px solid var(--linea); border-radius:12px; padding:6px 6px 7px; text-align:left; display:flex; flex-direction:column; gap:2px; content-visibility:auto; contain-intrinsic-size:104px 170px; } .tarj img, .tarj i { width:100%; aspect-ratio:1; object-fit:contain; border-radius:8px; display:block; background:#fff; } .tarj i { border:1px solid rgba(0,0,0,.06); } .tarj b { font-size:12px; font-weight:600; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; } .tarj small { font-size:10.5px; color:var(--suave); } .tarj em { font-style:normal; font-size:12px; font-variant-numeric:tabular-nums; margin-top:auto; } .tarj.sel { border-color:var(--acento); box-shadow:inset 0 0 0 1px var(--acento); }
 .estilos { display:flex; gap:6px; flex-wrap:wrap; } .estilos button { border:1px solid var(--linea); background:#fff; border-radius:999px; padding:6px 11px; } .estilos button.sel { background:var(--tinta); color:#fff; border-color:var(--tinta); }
@@ -204,6 +204,7 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
       <button class="opt" data-c="girar"><span>↻</span>Girar sola</button>
       <button class="opt" data-c="paredes"><span>▥</span>Ver todas las paredes</button>
       <button class="opt" data-c="nube"><span>⁘</span>Nube de puntos del escaneo</button>
+      <button class="opt" data-estilo id="estiloBtn"><span>🎨</span>Estilo dibujo (con línea y luz cálida)</button>
       <button class="opt" id="fotoBtn"><span>📷</span>Foto bonita de la vista</button>
       <div id="sueloBox" hidden><div class="subt" style="margin:10px 8px 6px">Suelo de esta habitación</div><div id="suelos"></div></div>
     </div>
@@ -281,11 +282,12 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-4';
+const PLANNER_VERSION = '2026.11.18-5';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -1262,7 +1264,7 @@ function ponerLuces() {
   const n = ui.noche; lamparas.clear();
   cielo.intensity = n ? .10 : 1.0; cielo.color.set(n ? 0x8090c0 : 0xffffff); sun.intensity = n ? 0 : 2.4;
   scene.environmentIntensity = n ? .08 : 1; scene.background = new THREE.Color(n ? 0x0b1020 : 0xe7eaee); renderer.toneMappingExposure = n ? 1.25 : 1.05;
-  encenderLamparas(n);
+  encenderLamparas(n); aplicarEstilo();
   if (!n || !flat) return;
   const conLampara = new Set();
   for (const it of items) { if (currentRoom >= 0 && it.room !== currentRoom) continue; it.obj.updateMatrixWorld(true); it.obj.traverse(o => { if (!o.userData.luz) return; const v = new THREE.Vector3(); o.getWorldPosition(v); if (lamparas.children.length < 12) { const l = new THREE.PointLight(0xffc98a, 2.2, 5, 1.8); l.position.copy(v); lamparas.add(l); } conLampara.add(it.room); }); }
@@ -1523,7 +1525,7 @@ function caminarA(pt) {
 async function fotoRevista() {
   $('opciones').hidden = true; const ocultos = [selBox, ...presCajas].filter(o => o.visible); ocultos.forEach(o => o.visible = false);
   const pr = renderer.getPixelRatio(), r = view.getBoundingClientRect(); renderer.setPixelRatio(Math.min(3, Math.max(2, 2400 / r.width)));
-  renderer.setSize(r.width, r.height, false); const exp = renderer.toneMappingExposure; renderer.toneMappingExposure = exp * 1.04; renderer.render(scene, camera);
+  renderer.setSize(r.width, r.height, false); const exp = renderer.toneMappingExposure; renderer.toneMappingExposure = exp * 1.04; pintar();
   const url = renderer.domElement.toDataURL('image/jpeg', .92);
   renderer.toneMappingExposure = exp; renderer.setPixelRatio(pr); resize(); ocultos.forEach(o => o.visible = true);
   const nombre = (flat?.name || 'piso') + (currentRoom >= 0 ? ' - ' + flat.rooms[currentRoom].name : '') + '.jpg';
@@ -1532,6 +1534,7 @@ async function fotoRevista() {
   const a = document.createElement('a'); a.href = url; a.download = nombre; a.click(); toast('Foto descargada');
 }
 $('fotoBtn').onclick = fotoRevista;
+$('estiloBtn').onclick = () => { estiloDibujo = !estiloDibujo; store.set('estilo', estiloDibujo ? 'dibujo' : 'realista'); aplicarEstilo(); };
 $('b-mas').onclick = () => $('hoja').classList.add('abierta'); $('hojaCerrar').onclick = () => $('hoja').classList.remove('abierta');
 $('hoja').onclick = e => { if (e.target.id === 'hoja') $('hoja').classList.remove('abierta'); };
 // ================= Lista de la compra con fases =================
@@ -2062,6 +2065,40 @@ function actualizarCotas() {
   cotasEl.forEach((e, k) => { const L = labs[k]; if (!L) { e.style.display = 'none'; return; } v.set(L[0], y, L[1]).project(camera); if (v.z > 1) { e.style.display = 'none'; return; }
     e.style.display = 'block'; e.style.left = ((v.x + 1) / 2 * rc.width) + 'px'; e.style.top = ((1 - v.y) / 2 * rc.height) + 'px'; e.textContent = Math.round(L[2] * 100) + ' cm'; });
 }
+
+// ================= Estilo «dibujo»: sombreado por tramos, línea de tinta y luz cálida de atardecer =================
+// Se pintan los mismos objetos con materiales toon sincronizados en cada fotograma (así no se toca nada del resto del código).
+let estiloDibujo = store.get('estilo') !== 'realista';
+const tinta = new OutlineEffect(renderer, { defaultThickness: .006, defaultColor: [.2, .13, .09], defaultAlpha: 1 });
+const RAMPA = (() => { const t = new THREE.DataTexture(new Uint8Array([140, 140, 140, 255, 205, 205, 205, 255, 255, 255, 255, 255]), 3, 1); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
+const toonDe = new WeakMap(), sinLinea = { visible: false }; const TONO_PARED = new THREE.Color('#f3dfc6');
+function aToon(m) {
+  if (!m || m.isMeshToonMaterial || m.isLineBasicMaterial || m.isLineDashedMaterial || m.isPointsMaterial || m.isShaderMaterial) return m;
+  if (m.isMeshBasicMaterial) { m.userData.outlineParameters = sinLinea; return m; }
+  let t = toonDe.get(m);
+  if (!t) { t = new THREE.MeshToonMaterial({ gradientMap: RAMPA }); toonDe.set(m, t); }
+  t.color.copy(m.color || new THREE.Color('#fff')); if (m === wallMat) t.color.multiply(TONO_PARED); if (t.map !== (m.map || null)) { t.map = m.map || null; t.needsUpdate = true; }
+  if (t.alphaMap !== (m.alphaMap || null)) { t.alphaMap = m.alphaMap || null; t.needsUpdate = true; }
+  t.transparent = m.transparent; t.opacity = m.opacity; t.side = m.side; t.depthWrite = m.depthWrite; t.visible = m.visible !== false;
+  if (m.emissive) { t.emissive.copy(m.emissive); t.emissiveIntensity = m.emissiveIntensity ?? 1; }
+  t.userData.outlineParameters = (m.transparent && m.opacity < .7) ? sinLinea : undefined;
+  return t;
+}
+const reales = [];
+function pintar() {
+  if (!estiloDibujo) { renderer.render(scene, camera); return; }
+  scene.traverse(o => { if (o.isMesh && o.material) { reales.push(o, o.material); o.material = Array.isArray(o.material) ? o.material.map(aToon) : aToon(o.material); } });
+  try { tinta.render(scene, camera); } finally { for (let i = 0; i < reales.length; i += 2) reales[i].material = reales[i + 1]; reales.length = 0; }
+}
+function aplicarEstilo() {
+  const n = ui.noche;
+  if (estiloDibujo) {
+    renderer.toneMapping = THREE.NoToneMapping;
+    if (!n) { scene.background = new THREE.Color('#efe4d3'); cielo.color.set('#fff0dc'); cielo.groundColor.set('#b58c69'); cielo.intensity = 1.55; sun.color.set('#ffd4a3'); sun.intensity = 2.2; }
+    else { cielo.intensity = .35; }
+  } else { renderer.toneMapping = THREE.ACESFilmicToneMapping; if (!n) { scene.background = new THREE.Color(0xe7eaee); cielo.color.set(0xffffff); cielo.groundColor.set(0xcdb89a); cielo.intensity = 1; sun.color.set(0xfff3e0); sun.intensity = 2.4; } }
+  document.querySelectorAll('[data-estilo]').forEach(b => b.classList.toggle('sel', estiloDibujo));
+}
 // ================= Hoja inferior (móvil) y menús =================
 const esMovil = () => matchMedia('(max-width: 760px)').matches;
 let hojaEstado = 'peek';
@@ -2094,11 +2131,11 @@ $('selX').onclick = () => select(null);
 $('cambiarBtn').onclick = () => { if (!selected) return; renderPanel(); if (esMovil()) { ponerHoja.porSel = true; ponerHoja('mitad'); } };
 $('selMasBtn').onclick = () => { $('selMas').hidden = !$('selMas').hidden; $('selMasBtn').classList.toggle('sel', !$('selMas').hidden); };
 // ================= Arranque =================
-resize(); ponerHoja('peek');
+resize(); ponerHoja('peek'); aplicarEstilo();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 $('verNote').textContent = 'Versión del planificador: ' + PLANNER_VERSION;
 if (!EN_APP) { const id = new URLSearchParams(location.search).get('piso'); if (id) abrirPisoVivo(id); }
-renderer.setAnimationLoop(() => { try { controls.update(); if (flat?.rooms && viewMode === '3d' && !ui.paredes) updateWalls(); if (selected) selBox.setFromObject(selected.obj); actualizarCotas(); for (const b of presCajas) b.box.setFromObject(b.userData.it.obj); renderer.render(scene, camera); } catch (e) { if (!window.__errLoop) { window.__errLoop = 1; console.error(e); } } });
+renderer.setAnimationLoop(() => { try { controls.update(); if (flat?.rooms && viewMode === '3d' && !ui.paredes) updateWalls(); if (selected) selBox.setFromObject(selected.obj); actualizarCotas(); for (const b of presCajas) b.box.setFromObject(b.userData.it.obj); pintar(); } catch (e) { if (!window.__errLoop) { window.__errLoop = 1; console.error(e); } } });
 window.__planner = { exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
 if (EN_APP) {
   $('webOnly').style.display = 'none'; $('closeBtn').hidden = false;
