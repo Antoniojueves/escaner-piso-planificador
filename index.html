@@ -204,7 +204,7 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
       <button class="opt" data-c="girar"><span>↻</span>Girar sola</button>
       <button class="opt" data-c="paredes"><span>▥</span>Ver todas las paredes</button>
       <button class="opt" data-c="nube"><span>⁘</span>Nube de puntos del escaneo</button>
-      <button class="opt" data-estilo id="estiloBtn"><span>🎨</span>Estilo dibujo (con línea y luz cálida)</button>
+      <button class="opt" data-estilo id="estiloBtn"><span>🎨</span>Estilo dibujo (sombreado plano y luz cálida)</button>
       <button class="opt" id="fotoBtn"><span>📷</span>Foto bonita de la vista</button>
       <div id="sueloBox" hidden><div class="subt" style="margin:10px 8px 6px">Suelo de esta habitación</div><div id="suelos"></div></div>
     </div>
@@ -282,12 +282,11 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { OutlineEffect } from './OutlineEffect.js';   // copia local (la app la descarga con el resto del planificador)
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-6';
+const PLANNER_VERSION = '2026.11.18-7';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -2069,8 +2068,8 @@ function actualizarCotas() {
 // ================= Estilo «dibujo»: sombreado por tramos, línea de tinta y luz cálida de atardecer =================
 // Se pintan los mismos objetos con materiales toon sincronizados en cada fotograma (así no se toca nada del resto del código).
 let estiloDibujo = store.get('estilo') !== 'realista';
-const tinta = new OutlineEffect(renderer, { defaultThickness: .006, defaultColor: [.2, .13, .09], defaultAlpha: 1 });
-const RAMPA = (() => { const t = new THREE.DataTexture(new Uint8Array([140, 140, 140, 255, 205, 205, 205, 255, 255, 255, 255, 255]), 3, 1); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
+// (sin línea de contorno)
+const RAMPA = (() => { const t = new THREE.DataTexture(new Uint8Array([185, 185, 185, 255, 222, 222, 222, 255, 255, 255, 255, 255]), 3, 1); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
 const toonDe = new WeakMap(), sinLinea = { visible: false }; const TONO_PARED = new THREE.Color('#f3dfc6');
 function aToon(m) {
   if (!m || m.isMeshToonMaterial || m.isLineBasicMaterial || m.isLineDashedMaterial || m.isPointsMaterial || m.isShaderMaterial) return m;
@@ -2088,7 +2087,7 @@ const reales = [];
 function pintar() {
   if (!estiloDibujo) { renderer.render(scene, camera); return; }
   scene.traverse(o => { if (o.isMesh && o.material) { reales.push(o, o.material); o.material = Array.isArray(o.material) ? o.material.map(aToon) : aToon(o.material); } });
-  try { tinta.render(scene, camera); } finally { for (let i = 0; i < reales.length; i += 2) reales[i].material = reales[i + 1]; reales.length = 0; }
+  try { renderer.render(scene, camera); } finally { for (let i = 0; i < reales.length; i += 2) reales[i].material = reales[i + 1]; reales.length = 0; }
 }
 function aplicarEstilo() {
   const n = ui.noche;
