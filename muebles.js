@@ -561,6 +561,7 @@ export function construir(p, acabado) {
     case 'cortina': cortina(g, W, D, H, c, o); break;
     case 'estor': estor(g, W, D, H, c, o); break;
     case 'radiador': radiador(g, W, D, H, c, o); break;
+    case 'ventana': ventana(g, W, D, H, c, o); break;
     case 'guitarra': guitarra(g, W, D, H, c, o); break;
     default: return null;
   }
@@ -798,6 +799,18 @@ function estor(g, W, D, H, c, o) {     // cajón arriba, tela a medio bajar y ba
   tela.position.set(0, H - .055 - alto / 2, z + .005); g.add(tela);
   caja(g, W - .02, .02, .015, M(o.colorCaja || '#e8e6e0', { madera: false }), 0, H - .055 - alto - .01, z + .005);
   if (!o.plisado) { cil(g, .003, .003, Math.min(.5, alto), M('#cfcac0'), W / 2 - .05, H - .055 - Math.min(.5, alto), z + .03, 6); }
+}
+// Ventana de aluminio: marco, parteluz, cristal, alféizar y persiana enrollable a medio bajar (o.persiana = fracción bajada)
+export function ventana(g, W, D, H, c, o = {}) {
+  const alu = M(o.marco || '#dfe1e2', { madera: false }), lama = M(o.colorPersiana || '#c9ccce', { madera: false }), junta = M('#8d9194', { madera: false });
+  const vidrio = new THREE.MeshStandardMaterial({ color: '#cfe3f2', emissive: '#eaf4fc', emissiveIntensity: .5, transparent: true, opacity: .5, roughness: .05, metalness: .1 });
+  const t = .05, z = Math.min(D / 2, .03);
+  const v = new THREE.Mesh(new THREE.BoxGeometry(W - t, H - t, .008), vidrio); v.position.set(0, H / 2, 0); g.add(v);
+  caja(g, W, t, .06, alu, 0, H - t, z * 0); caja(g, W, t, .06, alu, 0, 0, 0); for (const sx of [-1, 1]) caja(g, t, H, .06, alu, sx * (W / 2 - t / 2), 0, 0);
+  if (W > .7) { caja(g, .06, H, .065, alu, 0, 0, 0); for (const sx of [-1, 1]) caja(g, .012, .14, .02, junta, sx * .05, H * .45, .04); }   // dos hojas con su manilla
+  const pb = Math.max(0, Math.min(.95, o.persiana ?? .3)) * H;
+  if (pb > .02) { caja(g, W - .02, pb, .02, lama, 0, H - pb, -.045); const n = Math.floor(pb / .045); for (let i = 1; i < n; i++) caja(g, W - .02, .004, .022, junta, 0, H - i * .045, -.045); }
+  if (o.alfeizar !== false) caja(g, W + .08, .03, .14, M('#e9e6df', { madera: false }), 0, -.03, .05);
 }
 function radiador(g, W, D, H, c, o) {  // elementos de aluminio, o toallero de baño (dos tubos y barras)
   const m = M(c || '#f3f3f1', { roughness: .45, metalness: .15, madera: false });

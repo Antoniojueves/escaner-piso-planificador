@@ -288,9 +288,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
-import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
+import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe, ventana as ventanaMueble } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-22';
+const PLANNER_VERSION = '2026.11.18-23';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -820,7 +820,7 @@ function buildFlat(data) {
         holes.push({ x0: lx - fo.w / 2, x1: lx + fo.w / 2, y0: ly - fo.h / 2, y1: ly + fo.h / 2 });
         if (!o._used) {
           o._used = true; let m = null;
-          if (k === 'window') m = boxAt(fo.w, fo.h, .02, glassMat, f, lx, ly, 0);
+          if (k === 'window') { m = new THREE.Group(); ventanaMueble(m, fo.w, .06, fo.h, null, { persiana: .3, alfeizar: false }); m.quaternion.copy(f.q); { const pts = h.paredes.map(x => frame(x).p), cx = pts.reduce((a, p) => a + p.x, 0) / pts.length, cz = pts.reduce((a, p) => a + p.z, 0) / pts.length; if (new THREE.Vector3(cx, f.p.y, cz).sub(f.p).dot(f.ez) < 0) m.rotateY(Math.PI); } m.position.copy(f.p).addScaledVector(f.ex, lx).addScaledVector(f.ey, ly - fo.h / 2); m.traverse(x => { if (x.isMesh) { x.castShadow = false; x.receiveShadow = true; } }); }
           if (k === 'door' && !/isOpen: true/.test(o.categoria)) m = boxAt(fo.w - .04, fo.h - .02, .04, doorMat, f, lx, ly - .01, 0);
           if (m) { g.add(m); ops.push(m); }
         }
