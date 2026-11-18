@@ -290,7 +290,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe, ventana as ventanaMueble } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-24';
+const PLANNER_VERSION = '2026.11.18-25';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -1278,13 +1278,18 @@ function updateWalls() {
       const nrm = f.ez.clone(); nrm.y = 0; const c = new THREE.Vector3((r.box.x0 + r.box.x1) / 2, 0, (r.box.z0 + r.box.z1) / 2).sub(f.p); c.y = 0;
       if (nrm.dot(c) > 0) nrm.negate(); if (nrm.dot(toCam) > 0) low = true;
     }
-    set.openings.forEach(o => o.visible = !low);
+    set.openings.forEach(o => o.visible = !low); set.low = low;
     for (const w of set.pieces) {
       const hgt = w.geometry.parameters.height, base = w.userData.baseY ?? (w.userData.baseY = w.position.y - hgt / 2), floorTop = set.f.p.y - set.f.h / 2 + .15;
       const target = !low ? 1 : (base >= floorTop ? .0001 : Math.min(1, (floorTop - base) / hgt));
       if (w.scale.y !== target) { w.scale.y = target; w.position.y = base + hgt * target / 2; w.visible = target > .001; }
     }
   }
+  // ventanas, cortinas y estores añadidos a mano van con su pared: si la pared se oculta, ellos también
+  for (const it of items) { const p = products.get(it.pid); if (!p?.existing || !['ventana', 'cortina', 'estor'].includes(p.estilo?.f)) continue;
+    const r = flat.rooms[it.room]; let best = null;
+    for (const set of r?.walls || []) { const f = set.f, dx = it.x - f.p.x, dz = it.z - f.p.z, d = Math.abs(dx * f.ez.x + dz * f.ez.z) + Math.max(0, Math.abs(dx * f.ex.x + dz * f.ex.z) - f.w / 2); if (!best || d < best.d) best = { d, set }; }
+    if (best && best.d < .3) it.obj.visible = !best.set.low; }
 }
 function ponerLuces() {
   const n = ui.noche; lamparas.clear();
