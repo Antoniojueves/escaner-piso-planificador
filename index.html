@@ -287,7 +287,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-12';
+const PLANNER_VERSION = '2026.11.18-13';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -1611,14 +1611,16 @@ function aplicarAjustesEx(p, e) {
   let ch = false; const set = (k, v) => { if (JSON.stringify(p[k] ?? null) !== JSON.stringify(v ?? null)) { p[k] = v ?? undefined; ch = true; } };
   if (e.name && e.name !== p.name) set('name', e.name); if (e.cat && e.cat !== p.cat) set('cat', e.cat);
   for (const k of ['w', 'd', 'h']) if (e[k] && e[k] !== p[k]) { p[k] = e[k]; ch = true; }
-  for (const k of AJUSTES_EX) if (k in e) set(k, e[k]);
-  if (e.estilo) p.estiloPropio = true;
+  for (const k of AJUSTES_EX) if (k in e && k !== 'estilo') set(k, e[k]);
+  if ('estilo' in e) {   // null = volver al modelo deducido del escaneo
+    if (e.estilo) { if (!p.estiloPropio) { p.estiloBase = p.estilo; p.estiloPropio = true; } set('estilo', e.estilo); }
+    else if (p.estiloPropio) { p.estilo = p.estiloBase; p.estiloPropio = false; ch = true; } }
   return ch;
 }
 function serialize() {
   const ex = {};
   flat.rooms.forEach(r => r.objects.forEach(o => { const p = products.get(o.pid), it = items.find(i => i.existing === o.key); ex[o.key] = { removed: !it, x: it?.x, z: it?.z, rot: it?.rot, elev: it?.elev, libre: it?.libre, name: p.name, cat: p.cat, w: p.w, d: p.d, h: p.h };
-    for (const k of AJUSTES_EX) if (p[k] != null && (k !== 'estilo' || p.estiloPropio)) ex[o.key][k] = p[k]; }));
+    for (const k of AJUSTES_EX) ex[o.key][k] = (k === 'estilo' ? (p.estiloPropio ? p.estilo : null) : p[k]) ?? null; }));
   return { version: 2, proyecto: flat.name, actualizado: new Date().toISOString(),
     nuevos: items.filter(i => !i.existing).map(({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase }) => ({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase: fase || null })),
     existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {}, suelos: design?.suelos || {}, propuestas: design?.propuestas || {}, sync: design?.sync || null };
@@ -1780,7 +1782,7 @@ $('syncNow').onclick = async () => { if (!flat) return toast('Abre primero un pi
 // ================= Carga de proyectos =================
 async function loadProject({ name, piso, ply, savedDesign }) {
   $('loadMsg').textContent = 'Construyendo el modelo…'; $('carga').style.display = 'grid'; $('hoja').classList.remove('abierta');
-  sync?.cerrar(); sync = null; verPresencia([]);
+  sync?.cerrar(); sync = null; verPresencia([]); clearTimeout(saveTimer); clearTimeout(changed.h);   // que no se guarde a medias el piso anterior
   const paso = async t => { $('loadMsg').textContent = t; await new Promise(r => setTimeout(r, 30)); };
   try {
   await paso('Leyendo la nube de puntos…');
