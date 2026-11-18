@@ -289,7 +289,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-15';
+const PLANNER_VERSION = '2026.11.18-16';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -1619,16 +1619,29 @@ function aplicarAjustesEx(p, e) {
     else if (p.estiloPropio) { p.estilo = p.estiloBase; p.estiloPropio = false; ch = true; } }
   return ch;
 }
+// Muebles que el escaneo no detectó y se añadieron después (revisión con Claude): se tratan igual que los escaneados
+function crearExtra(key, e) {
+  const ri = flat.rooms[e.room] ? e.room : flat.rooms.findIndex(r => pointInPoly(e.x, e.z, r.poly)), r = flat.rooms[ri]; if (!r) return null;
+  const p = { id: 'ex' + key, existing: true, extra: true, cat: e.cat || 'storage', attrs: [], name: e.name || 'Mueble', w: e.w || 50, d: e.d || 50, h: e.h || 50,
+    color: e.color || DEF_COL[e.cat] || '#bbbbbb', color2: null, backSign: -1, kind: 'existing' };
+  p.orig = { name: p.name, cat: p.cat, w: p.w, d: p.d, h: p.h, color: p.color, color2: null, estilo: undefined };
+  products.set(p.id, p); const o = { key, pid: p.id, x: e.x, z: e.z, rot: e.rot || 0, y: r.floorY + (e.elev || 0), backSign: -1, extra: true }; r.objects.push(o); return { o, r };
+}
+function ponerExtras(ex) {
+  for (const r of flat.rooms) r.objects = r.objects.filter(o => { if (!o.extra) return true; products.delete(o.pid); return false; });
+  for (const [k, e] of Object.entries(ex || {})) crearExtra(k, e);
+}
 function serialize() {
   const ex = {};
   flat.rooms.forEach(r => r.objects.forEach(o => { const p = products.get(o.pid), it = items.find(i => i.existing === o.key); ex[o.key] = { removed: !it, x: it?.x, z: it?.z, rot: it?.rot, elev: it?.elev, libre: it?.libre, name: p.name, cat: p.cat, w: p.w, d: p.d, h: p.h };
     for (const k of AJUSTES_EX) ex[o.key][k] = (k === 'estilo' ? (p.estiloPropio ? p.estilo : null) : p[k]) ?? null; }));
   return { version: 2, proyecto: flat.name, actualizado: new Date().toISOString(),
     nuevos: items.filter(i => !i.existing).map(({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase }) => ({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase: fase || null })),
-    existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {}, suelos: design?.suelos || {}, propuestas: design?.propuestas || {}, sync: design?.sync || null };
+    existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {}, suelos: design?.suelos || {}, propuestas: design?.propuestas || {}, extras: design?.extras || {}, sync: design?.sync || null };
 }
 function applyDesign(d) {
   [...items].forEach(i => furnGroup.remove(i.obj)); items = []; select(null);
+  ponerExtras(d?.extras);
   (d?.propios || []).forEach(p => { if (!p.acabados) p.acabados = [{ id: 'propio', name: 'Propio', color: p.color || '#c9c2b4', price: p.price || 0, url: p.url || null }]; products.set(p.id, p); });
   flat.rooms.forEach(r => r.objects.forEach(o => {
     const e = d?.existentes?.[o.key], p = products.get(o.pid);
@@ -1688,6 +1701,11 @@ function aplicarRemoto(d) {
   if (!flat || !d) return;
   let cambio = false; const sel = selected ? slotIdOf(selected) : null;
   if (d.propuestas && JSON.stringify(d.propuestas) !== JSON.stringify(design?.propuestas || {})) { design.propuestas = d.propuestas; cambio = true; }
+  if (JSON.stringify(d.extras || {}) !== JSON.stringify(design?.extras || {})) {   // muebles añadidos o quitados en el otro dispositivo
+    const antes = design.extras || {}, ahora = d.extras || {}; design.extras = ahora; cambio = true;
+    for (const k of Object.keys(antes)) if (!ahora[k]) { const it = items.find(i => i.existing === k); if (it) removeItem(it); for (const r of flat.rooms) r.objects = r.objects.filter(o => o.key !== k); products.delete('ex' + k); }
+    for (const [k, e] of Object.entries(ahora)) if (!antes[k]) { const c = crearExtra(k, e); if (c) addItem(c.o.pid, c.r.i, c.o.x, c.o.z, c.o.rot, { existing: k, y: c.o.y }); }
+  }
   (d.propios || []).forEach(p => { if (!products.has(p.id)) { if (!p.acabados) p.acabados = [{ id: 'propio', name: 'Propio', color: p.color || '#c9c2b4', price: p.price || 0, url: p.url || null }]; products.set(p.id, p); gridCache = null; cambio = true; } });
   flat.rooms.forEach(r => r.objects.forEach(o => {
     const e = d.existentes?.[o.key]; if (!e) return; const it = items.find(i => i.existing === o.key);
@@ -2204,8 +2222,59 @@ async function coloresDeFotos(base) {
 }
 function listarExistentes() {
   return flat.rooms.flatMap(r => r.objects.map(o => { const p = products.get(o.pid), it = items.find(i => i.existing === o.key);
-    return { key: o.key, habitacion: r.name, nombre: p.name, cat: p.cat, atributos: p.attrs, w: p.w, d: p.d, h: p.h, color: p.color, estilo: p.estiloPropio ? p.estilo : undefined, modelo: p.modelo, nota: p.nota, quitado: !it }; }));
+    return { key: o.key, extra: !!o.extra || undefined, habitacion: r.name, nombre: p.name, cat: p.cat, atributos: p.attrs, w: p.w, d: p.d, h: p.h, color: p.color, estilo: p.estiloPropio ? p.estilo : undefined, modelo: p.modelo, nota: p.nota, quitado: !it }; }));
 }
+// Bultos de la nube de puntos que no son pared, suelo ni ningún mueble detectado: posibles muebles que el escaneo no reconoció
+function huecosSinModelar() {
+  if (!cloud || !flat) return [];
+  const out = [], { pos, col, n } = cloud, step = Math.max(1, Math.floor(n / 800000)), V = .06;
+  flat.rooms.forEach(r => {
+    const fr = r.objects.map(o => { const p = products.get(o.pid), it = items.find(i => i.existing === o.key), x = it?.x ?? o.x, z = it?.z ?? o.z, rot = it?.rot ?? o.rot, y0 = it ? it.y : o.y;
+      return { x, z, c: Math.cos(rot), s: Math.sin(rot), w: p.w / 200 + .06, d: p.d / 200 + .06, y0: y0 - .03, y1: y0 + p.h / 100 + .05 }; });
+    let ang = 0, L = 0; for (const w of r.walls) if (w.f.w > L) { L = w.f.w; ang = Math.atan2(w.f.ex.z, w.f.ex.x); }
+    const ca = Math.cos(ang), sa = Math.sin(ang), poly = r.poly;
+    const borde = (x, z) => { let d = Infinity; for (let i = 0; i < poly.length; i++) { const [ax, az] = poly[i], [bx, bz] = poly[(i + 1) % poly.length], ex = bx - ax, ez = bz - az, L2 = ex * ex + ez * ez || 1, t = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / L2)); d = Math.min(d, Math.hypot(x - ax - t * ex, z - az - t * ez)); } return d; };
+    const celdas = new Map();
+    for (let i = 0; i < n; i += step) {
+      const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
+      if (y < r.floorY + .08 || y > r.floorY + Math.min(2.1, r.height - .25) || !pointInPoly(x, z, poly) || borde(x, z) < .1) continue;
+      let dentro = false; for (const f of fr) { const dx = x - f.x, dz = z - f.z, lx = dx * f.c - dz * f.s, lz = dx * f.s + dz * f.c; if (Math.abs(lx) < f.w && Math.abs(lz) < f.d && y > f.y0 && y < f.y1) { dentro = true; break; } } if (dentro) continue;
+      const u = x * ca + z * sa, v = -x * sa + z * ca, k = Math.floor(u / V) + ',' + Math.floor((y - r.floorY) / V) + ',' + Math.floor(v / V), c = celdas.get(k);
+      if (c) { c.n++; c.r += col[i * 3]; c.g += col[i * 3 + 1]; c.b += col[i * 3 + 2]; } else celdas.set(k, { n: 1, r: col[i * 3], g: col[i * 3 + 1], b: col[i * 3 + 2] });
+    }
+    for (const [k, c] of celdas) if (c.n < 3) celdas.delete(k);
+    const vistos = new Set(), grupos = [];
+    for (const k0 of celdas.keys()) {
+      if (vistos.has(k0)) continue; const pila = [k0], g = []; vistos.add(k0);
+      while (pila.length) { const k = pila.pop(); g.push(k); const [a, b, c] = k.split(',').map(Number);
+        for (let da = -1; da <= 1; da++) for (let db = -1; db <= 1; db++) for (let dc = -1; dc <= 1; dc++) { const kk = (a + da) + ',' + (b + db) + ',' + (c + dc); if (celdas.has(kk) && !vistos.has(kk)) { vistos.add(kk); pila.push(kk); } } }
+      if (g.length < 25) continue;
+      let a0 = Infinity, a1 = -Infinity, b1 = -Infinity, c0 = Infinity, c1 = -Infinity, R = 0, G = 0, B = 0, N = 0;
+      for (const k of g) { const [a, b, c] = k.split(',').map(Number), q = celdas.get(k); a0 = Math.min(a0, a); a1 = Math.max(a1, a + 1); b1 = Math.max(b1, b + 1); c0 = Math.min(c0, c); c1 = Math.max(c1, c + 1); R += q.r; G += q.g; B += q.b; N += q.n; }
+      const w = (a1 - a0) * V, d = (c1 - c0) * V, h = b1 * V + .08; if (Math.max(w, d) < .2 || h < .25 || w * d > 6) continue;
+      const u = (a0 + a1) / 2 * V, v = (c0 + c1) / 2 * V, x = u * ca - v * sa, z = u * sa + v * ca, rot = -ang;
+      grupos.push({ x, z, w, d, h, rot, color: colHex([R / N, G / N, B / N]), n: g.length });
+    }
+    grupos.sort((p, q) => q.n - p.n).slice(0, 15).forEach((g, j) => {
+      const m = new THREE.Matrix4().makeRotationY(g.rot).setPosition(g.x, r.floorY + g.h / 2, g.z);
+      out.push({ key: 'h' + r.i + '-' + j, habitacion: r.name, room: r.i, x: +g.x.toFixed(3), z: +g.z.toFixed(3), rot: +g.rot.toFixed(4), w: Math.round(g.w * 100), d: Math.round(g.d * 100), h: Math.round(g.h * 100), color: g.color, transform: m.elements.map(v => +v.toFixed(5)) });
+    });
+  });
+  return out;
+}
+// Añade uno de tus muebles que el escaneo no detectó (desde un hueco de huecosSinModelar o con posición x/z en metros)
+function añadirExistente(c) {
+  const h = c.hueco ? (añadirExistente.huecos || (añadirExistente.huecos = huecosSinModelar())).find(x => x.key === c.hueco) : null;
+  if (c.hueco && !h) throw new Error('No hay ningún hueco ' + c.hueco);
+  const e = { room: c.room ?? h?.room, cat: c.cat || 'storage', name: c.name || 'Mueble', w: c.w || h?.w, d: c.d || h?.d, h: c.h || h?.h, x: c.x ?? h?.x, z: c.z ?? h?.z, rot: c.rot ?? h?.rot ?? 0, elev: c.elev || 0, color: c.color || h?.color };
+  if (e.x == null || e.z == null) throw new Error('Falta la posición (hueco o x/z)');
+  const key = 'x' + Date.now().toString(36), cr = crearExtra(key, e); if (!cr) throw new Error('La posición no está dentro de ninguna habitación');
+  design.extras = { ...(design.extras || {}), [key]: { ...e, room: cr.r.i } };
+  addItem(cr.o.pid, cr.r.i, e.x, e.z, e.rot, { existing: key, y: cr.o.y });
+  const aj = {}; for (const k of ['estilo', 'modelo', 'nota', 'color2', 'forma']) if (c[k] != null) aj[k] = c[k];
+  return Object.keys(aj).length ? editarExistente(key, aj) : (changed(), listarExistentes().find(x => x.key === key));
+}
+function quitarExtra(key) { if (!design.extras?.[key]) throw new Error('Solo se pueden borrar los añadidos'); const { [key]: _, ...rest } = design.extras; design.extras = rest; const it = items.find(i => i.existing === key); if (it) removeItem(it); for (const r of flat.rooms) r.objects = r.objects.filter(o => o.key !== key); products.delete('ex' + key); changed(); }
 // Para la revisión desde un chat: cambia cómo se ve uno de tus muebles (se guarda y se sincroniza solo)
 function editarExistente(key, c) {
   const o = flat.rooms.flatMap(r => r.objects).find(o => o.key === key); if (!o) throw new Error('No hay ningún mueble ' + key);
@@ -2227,8 +2296,8 @@ $('resetBtn').onclick = () => {
   applyDesign({ sync: design?.sync || null, propuestas: design?.propuestas || {} }); setRoom(currentRoom, false); changed(); toast('Piso como al escanearlo · ↶ para deshacer');
 };
 $('claudeBtn').onclick = () => { if (!flat) return; $('opciones').hidden = true;
-  try { window.webkit.messageHandlers.revisarClaude.postMessage(JSON.stringify({ piso: flat.name, enlace: enlacePiso(), muebles: listarExistentes() })); toast('Preparando el paquete para Claude…'); } catch { toast('Esto se hace desde la app del iPhone'); } };
-window.__planner = { existentes: listarExistentes, editarExistente, buscarCatalogo, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
+  try { window.webkit.messageHandlers.revisarClaude.postMessage(JSON.stringify({ piso: flat.name, enlace: enlacePiso(), muebles: listarExistentes(), sinDetectar: (() => { try { return huecosSinModelar(); } catch { return []; } })() })); toast('Preparando el paquete para Claude…'); } catch { toast('Esto se hace desde la app del iPhone'); } };
+window.__planner = { existentes: listarExistentes, editarExistente, buscarCatalogo, huecosSinModelar, añadirExistente, quitarExtra, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
 if (EN_APP) {
   $('webOnly').style.display = 'none'; $('closeBtn').hidden = false; $('claudeBtn').hidden = false;
   $('closeBtn').onclick = () => { save(); try { window.webkit.messageHandlers.cerrar.postMessage(''); } catch {} };
