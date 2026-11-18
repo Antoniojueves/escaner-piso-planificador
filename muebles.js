@@ -579,6 +579,7 @@ export function construir(p, acabado) {
     case 'ventana': ventana(g, W, D, H, c, o); break;
     case 'cocina': cocina(g, W, D, H, c, o); break;
     case 'ropero': ropero(g, W, D, H, c, o); break;
+    case 'zapatero': zapatero(g, W, D, H, c, o); break;
     case 'guitarra': guitarra(g, W, D, H, c, o); break;
     default: return null;
   }
@@ -847,14 +848,28 @@ function cocina(g, W, D, H, c, o = {}) {
     caja(g, .03, .32, .03, inox, x, H, -D / 2 + .1); caja(g, .03, .03, .2, inox, x, H + .3, -D / 2 + .2); }
   if (o.placa != null) { const x = -W / 2 + (at(o.placa) + .5) * mw; caja(g, .58, .006, .5, negro, x, H + .001, 0); }
 }
-// Ropero abierto de entrada: balda arriba, barra con abrigos y zapateros abajo
+// Ropero abierto de entrada (sistema de pared blanco): balda para gorras con barra de perchas, abrigos colgados,
+// dos estantes de zapatos inclinados de varilla y una caja abajo
 function ropero(g, W, D, H, c, o = {}) {
-  const b = M(c, { madera: false }), metal = METAL('#9a9ea2'), ropa = ['#3b2f2a', '#7a4a2a', '#2b2f36', '#4a4f57', '#8a8f7a'], zap = ['#2a2a2a', '#d9d4c8', '#6b4a2e', '#1f2a3a'];
-  caja(g, .02, H, D, b, -W / 2 + .01, 0, 0); caja(g, .02, H, D, b, W / 2 - .01, 0, 0); caja(g, W, .025, D, b, 0, H * .8, 0);
-  const rail = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, W - .04, 10), metal); rail.rotation.z = Math.PI / 2; rail.position.set(0, H * .8 - .06, 0); g.add(rail);
-  const n = Math.max(2, Math.round(W / .14)); for (let i = 0; i < n; i++) caja(g, (W - .1) / n * .8, .7 + (i % 3) * .1, D * .55, M(ropa[i % ropa.length], { tela: true }), -W / 2 + .05 + (i + .5) * (W - .1) / n, H * .8 - .76 - (i % 3) * .1, 0);
-  for (const y of [.05, .25]) { caja(g, W - .04, .015, D * .8, b, 0, y, 0); for (let i = 0; i < Math.round(W / .16); i++) caja(g, .1, .08, .26, M(zap[(i + (y > .1 ? 1 : 0)) % zap.length], { madera: false }), -W / 2 + .1 + i * .16, y + .015, 0); }
-  for (let i = 0; i < Math.round(W / .25); i++) caja(g, .18, .1, .2, M(i % 2 ? '#222' : '#555', { tela: true }), -W / 2 + .15 + i * .25, H * .8 + .025, 0);
+  const b = M(c, { madera: false }), metal = METAL('#d8dadb'), ropa = ['#b4502a', '#6b4a2e', '#2b2f36', '#1f2633', '#3b2f2a'], zap = ['#2a2a2a', '#f0eee8', '#b8862e', '#1d1d1d', '#7a6a55'];
+  const yb = Math.min(H - .25, 1.75);
+  caja(g, .025, H * .55, .02, b, -W / 2 + .1, yb - H * .45, -D / 2 + .01); caja(g, .025, H * .55, .02, b, W / 2 - .1, yb - H * .45, -D / 2 + .01);   // rieles de pared
+  caja(g, W - .1, .02, D * .7, b, 0, yb, -D / 2 + D * .35);   // balda
+  const rail = new THREE.Mesh(new THREE.CylinderGeometry(.01, .01, W - .14, 10), metal); rail.rotation.z = Math.PI / 2; rail.position.set(0, yb - .05, -D / 2 + D * .45); g.add(rail);
+  for (let i = 0; i < 2; i++) { const k = new THREE.Mesh(new THREE.SphereGeometry(.12, 14, 10), M(i ? '#3a2a24' : '#15171c', { tela: true })); k.scale.set(1, .7, 1); k.position.set(-.13 + i * .26, yb + .1, -D / 2 + D * .35); g.add(k); }   // gorras
+  const n = Math.max(3, Math.round((W - .14) / .12)); for (let i = 0; i < n; i++) caja(g, (W - .14) / n * .85, .78 - (i % 2) * .08, D * .5, M(ropa[i % ropa.length], { tela: true }), -W / 2 + .07 + (i + .5) * (W - .14) / n, yb - .85 + (i % 2) * .08, -D / 2 + D * .45);
+  for (const [y, k] of [[.12, 0], [.36, 1]]) { const est = new THREE.Group(); est.position.set(0, y, 0); est.rotation.x = .18; g.add(est);
+    caja(est, W - .16, .012, D * .85, metal, 0, 0, 0); for (let i = 0; i < Math.round((W - .2) / .15); i++) caja(est, .1, .07, .26, M(zap[(i + k) % zap.length], { madera: false }), -W / 2 + .16 + i * .15, .012, 0); }
+  caja(g, .3, .1, D * .6, b, 0, 0, 0);   // caja blanca abajo
+}
+// Zapatero de compartimentos abatibles (tipo HEMNES): 2 columnas, pomos, encimera que sobresale y zócalo
+function zapatero(g, W, D, H, c, o = {}) {
+  const b = M(c, { madera: false }), junta = M(new THREE.Color(c).multiplyScalar(.8).getStyle(), { madera: false }), pomo = METAL('#6b6b6b');
+  const cols = o.columnas || (W > .7 ? 2 : 1), filas = o.filas || 2, zoc = .06, top = .025, cw = (W - .04) / cols, fh = (H - zoc - top - .02) / filas;
+  caja(g, W - .04, zoc, D - .04, junta, 0, 0, -.01); caja(g, W - .02, H - zoc - top, D - .02, b, 0, zoc, -.01); caja(g, W + .02, top, D + .02, b, 0, H - top, 0);
+  for (let i = 0; i < cols; i++) for (let j = 0; j < filas; j++) { const x = -W / 2 + .02 + (i + .5) * cw, y = zoc + .01 + j * fh;
+    caja(g, cw - .01, fh - .01, .018, b, x, y, D / 2 - .005); caja(g, cw - .06, fh - .07, .004, junta, x, y + .03, D / 2 + .004);
+    const p = new THREE.Mesh(new THREE.SphereGeometry(.016, 10, 8), pomo); p.position.set(x, y + fh - .07, D / 2 + .02); g.add(p); }
 }
 export function ventana(g, W, D, H, c, o = {}) {
   const alu = M(o.marco || '#dfe1e2', { madera: false }), lama = M(o.colorPersiana || '#c9ccce', { madera: false }), junta = M('#8d9194', { madera: false });
