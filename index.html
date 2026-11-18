@@ -207,6 +207,7 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
       <button class="opt" data-c="nube"><span>⁘</span>Nube de puntos del escaneo</button>
       <button class="opt" data-estilo id="estiloBtn"><span>🎨</span>Estilo dibujo (sombreado plano)</button>
       <button class="opt" id="fotoBtn"><span>📷</span>Foto bonita de la vista</button>
+      <button class="opt" id="colocarBtn"><span>⊞</span>Colocar habitaciones (si salen solapadas o separadas)</button>
       <button class="opt" id="resetBtn"><span>↺</span>Volver al piso escaneado (quita todos los cambios)</button>
       <button class="opt" id="claudeBtn" hidden><span>✦</span>Revisar mis muebles con Claude</button>
       <div id="sueloBox" hidden><div class="subt" style="margin:10px 8px 6px">Suelo de esta habitación</div><div id="suelos"></div></div>
@@ -289,7 +290,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-20';
+const PLANNER_VERSION = '2026.11.18-21';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -1638,7 +1639,7 @@ function serialize() {
     if (o.extra && design?.extras?.[o.key]) ex[o.key].extra = design.extras[o.key]; }));
   return { version: 2, proyecto: flat.name, actualizado: new Date().toISOString(),
     nuevos: items.filter(i => !i.existing).map(({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase }) => ({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase: fase || null })),
-    existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {}, suelos: design?.suelos || {}, propuestas: design?.propuestas || {}, extras: design?.extras || {}, sync: design?.sync || null };
+    existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {}, suelos: design?.suelos || {}, propuestas: design?.propuestas || {}, extras: design?.extras || {}, alineacion: design?.alineacion || null, sync: design?.sync || null };
 }
 function applyDesign(d) {
   [...items].forEach(i => furnGroup.remove(i.obj)); items = []; select(null);
@@ -1700,6 +1701,7 @@ function moverA(it, n) {
 }
 function aplicarRemoto(d) {
   if (!flat || !d) return;
+  if (d.alineacion && JSON.stringify(d.alineacion) !== JSON.stringify(design?.alineacion || null)) { if (colocando) cerrarColocar(); recargarAlineacion(d.alineacion, d); return; }   // habitaciones recolocadas en el otro dispositivo
   let cambio = false; const sel = selected ? slotIdOf(selected) : null;
   if (d.propuestas && JSON.stringify(d.propuestas) !== JSON.stringify(design?.propuestas || {})) { design.propuestas = d.propuestas; cambio = true; }
   { // muebles añadidos en el otro dispositivo (vienen en el documento de cada mueble; quitarlos = removed)
@@ -1803,20 +1805,174 @@ const drive = {
 $('syncNow').onclick = async () => { if (!flat) return toast('Abre primero un piso'); const d = await drive.pull(); if (d && (!design || d.actualizado > design.actualizado)) { applyDesign(d); setRoom(currentRoom, false); toast('Diseño actualizado desde Drive'); } else { drive.queue(serialize()); drive.push(); } };
 
 // ================= Carga de proyectos =================
+// ================= Encajar las habitaciones =================
+// En escaneos antiguos, el iPhone ponía el origen de coordenadas donde estaba el móvil al empezar cada habitación,
+// así que las habitaciones salían unas encima de otras. Las encajo por sus puertas (cada puerta une dos habitaciones)
+// y por los tabiques compartidos; el resultado se guarda en el diseño (alineacion) y se puede retocar a mano.
+function datosAlineacion(piso) {
+  return piso.habitaciones.map((h, i) => {
+    const poly = floorPolygon(h.paredes) || [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+    const xs = poly.map(p => p[0]), zs = poly.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
+    const muestras = []; for (let x = x0 + .1; x < x1; x += .15) for (let z = z0 + .1; z < z1; z += .15) if (pointInPoly(x, z, poly)) muestras.push([x, z]);
+    const suelo = Math.min(...h.paredes.map(w => w.transform[13] - w.alto / 2));
+    const fuera = (f, d = .3) => { let n = [f.ez.x, f.ez.z]; if (pointInPoly(f.p.x + n[0] * d, f.p.z + n[1] * d, poly)) n = [-n[0], -n[1]]; return n; };
+    const puertas = [...(h.puertas || []), ...(h.aberturas || [])].map(el => { const f = frame(el); return { w: el.ancho, p: [f.p.x, f.p.z], n: fuera(f) }; });
+    const paredes = h.paredes.filter(el => el.ancho > .3).map(el => { const f = frame(el); return { w: el.ancho, p: [f.p.x, f.p.z], ex: [f.ex.x, f.ex.z], n: fuera(f, .2) }; });
+    return { i, nombre: h.nombre, poly, muestras, suelo, puertas, paredes };
+  });
+}
+const solapeHab = (a, ta, b, tb) => { let n = 0; for (const [x, z] of a.muestras) if (pointInPoly(x + ta[0] - tb[0], z + ta[1] - tb[1], b.poly)) n++; return n * .0225; };
+const espaldaHab = (b, tb, c, tc) => { let L = 0;   // metros de pared de b espalda con espalda con paredes de c (tabique compartido)
+  for (const p of b.paredes) for (const q of c.paredes) {
+    if (Math.abs(p.ex[0] * q.ex[0] + p.ex[1] * q.ex[1]) < .98 || p.n[0] * q.n[0] + p.n[1] * q.n[1] > -.9) continue;
+    const dx = q.p[0] + tc[0] - p.p[0] - tb[0], dz = q.p[1] + tc[1] - p.p[1] - tb[1], sep = dx * p.n[0] + dz * p.n[1];
+    if (sep < .02 || sep > .4) continue;
+    const u = dx * p.ex[0] + dz * p.ex[1], ov = Math.min(p.w / 2, u + q.w / 2) - Math.max(-p.w / 2, u - q.w / 2); if (ov > .2) L += ov; }
+  return L; };
+function alineacionAuto(piso, forzar = false) {
+  if (!piso?.habitaciones || piso.habitaciones.length < 2) return null;
+  const R = datosAlineacion(piso);
+  let solTotal = 0; for (let i = 0; i < R.length; i++) for (let j = i + 1; j < R.length; j++) solTotal += solapeHab(R[i], [0, 0], R[j], [0, 0]);
+  if (!forzar && solTotal < 2) return null;   // ya casan (escaneos nuevos): no toco nada
+  const GR = .1, K = 80, ancla = R.reduce((a, b) => b.puertas.length > a.puertas.length ? b : a);
+  let haz = [{ T: R.map(r => r === ancla ? [0, 0] : null), usadas: new Set(), coste: 0 }];
+  for (let paso = 1; paso < R.length; paso++) {
+    const sig = [];
+    for (const st of haz) {
+      let algo = false;
+      for (const b of R) { if (st.T[b.i]) continue;
+        for (const a of R) { if (!st.T[a.i]) continue;
+          a.puertas.forEach((pa, ia) => { if (st.usadas.has(a.i + ':' + ia)) return;
+            b.puertas.forEach((pb, ib) => { if (st.usadas.has(b.i + ':' + ib)) return;
+              if (Math.abs(pa.w - pb.w) > .15 || pa.n[0] * pb.n[0] + pa.n[1] * pb.n[1] > -.9) return;
+              const t = [st.T[a.i][0] + pa.p[0] + pa.n[0] * GR - pb.p[0], st.T[a.i][1] + pa.p[1] + pa.n[1] * GR - pb.p[1]];
+              let tb = t, mejorE = -1;
+              for (let dx = -.15; dx <= .151; dx += .05) for (let dz = -.15; dz <= .151; dz += .05) { const tt = [t[0] + dx, t[1] + dz]; let e = -Math.hypot(dx, dz) * 2; for (const c of R) if (st.T[c.i]) e += espaldaHab(b, tt, c, st.T[c.i]); if (e > mejorE) { mejorE = e; tb = tt; } }
+              let sol = 0, esp = 0; for (const c of R) if (st.T[c.i]) { sol += solapeHab(b, tb, c, st.T[c.i]); esp += espaldaHab(b, tb, c, st.T[c.i]); }
+              const T = st.T.slice(); T[b.i] = tb; const usadas = new Set(st.usadas); usadas.add(a.i + ':' + ia); usadas.add(b.i + ':' + ib);
+              sig.push({ T, usadas, coste: st.coste + sol * 1.5 - esp + Math.abs(pa.w - pb.w) * 3 }); algo = true;
+            }); }); } }
+      if (!algo) sig.push({ ...st, coste: st.coste + 50 });
+    }
+    const vistos = new Set();
+    haz = sig.sort((x, y) => x.coste - y.coste).filter(st => { const k = st.T.map(t => t ? t.map(v => v.toFixed(1)).join(',') : '-').join('|'); if (vistos.has(k)) return false; vistos.add(k); return true; }).slice(0, K);
+  }
+  for (const st of haz) { let c = 0; for (const a of R) for (const b of R) if (a.i < b.i && st.T[a.i] && st.T[b.i]) for (const pa of a.puertas) for (const pb of b.puertas) if (Math.hypot(pa.p[0] + st.T[a.i][0] + pa.n[0] * GR - pb.p[0] - st.T[b.i][0], pa.p[1] + st.T[a.i][1] + pa.n[1] * GR - pb.p[1] - st.T[b.i][1]) < .2) c++; st.final = st.coste - c * .5; }
+  const best = haz.sort((x, y) => x.final - y.final)[0], al = {};
+  R.forEach(r => { const t = best.T[r.i] || [0, 0]; al[r.i] = [+t[0].toFixed(3), +(ancla.suelo - r.suelo).toFixed(3), +t[1].toFixed(3)]; });
+  return al;
+}
+const desplazar = (el, o) => { if (el?.transform) { el.transform = el.transform.slice(); el.transform[12] += o[0]; el.transform[13] += o[1]; el.transform[14] += o[2]; } };
+function alinearPiso(piso, al) {
+  const p2 = JSON.parse(JSON.stringify(piso, (k, v) => k === '_used' ? undefined : v));
+  p2.habitaciones.forEach((h, ri) => { const o = al[ri]; if (!o) return;
+    for (const k of ['paredes', 'puertas', 'ventanas', 'aberturas', 'suelos', 'objetos']) (h[k] || []).forEach(el => desplazar(el, o));
+    (h.secciones || []).forEach(s => { if (s.centro) s.centro = [s.centro[0] + o[0], s.centro[1] + o[1], s.centro[2] + o[2]]; }); });
+  return p2;
+}
+// Cada punto de la nube va con su habitación (la que lo contiene en las coordenadas originales y tiene la pared más cerca)
+function alinearNube(piso, base, al) {
+  if (!base) return null;
+  const R = piso.habitaciones.map((h, i) => { const poly = floorPolygon(h.paredes) || [[0, 0]]; const xs = poly.map(p => p[0]), zs = poly.map(p => p[1]);
+    return { i, poly, bb: [Math.min(...xs) - .3, Math.max(...xs) + .3, Math.min(...zs) - .3, Math.max(...zs) + .3],
+      segs: h.paredes.map(el => { const f = frame(el); return [f.p.x - f.ex.x * el.ancho / 2, f.p.z - f.ex.z * el.ancho / 2, f.p.x + f.ex.x * el.ancho / 2, f.p.z + f.ex.z * el.ancho / 2]; }) }; });
+  const dSeg = (x, z, [ax, az, bx, bz]) => { const ex = bx - ax, ez = bz - az, L2 = ex * ex + ez * ez || 1, t = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / L2)); return Math.hypot(x - ax - t * ex, z - az - t * ez); };
+  const { pos: p0, col, n } = base, pos = new Float32Array(p0);
+  for (let i = 0; i < n; i++) {
+    const x = p0[i * 3], z = p0[i * 3 + 2]; let mejor = -1, md = Infinity;
+    for (const r of R) { if (x < r.bb[0] || x > r.bb[1] || z < r.bb[2] || z > r.bb[3]) continue; let d = Infinity; for (const s of r.segs) d = Math.min(d, dSeg(x, z, s)); if (!pointInPoly(x, z, r.poly)) d += .25; if (d < md) { md = d; mejor = r.i; } }
+    const o = al[mejor]; if (o) { pos[i * 3] += o[0]; pos[i * 3 + 1] += o[1]; pos[i * 3 + 2] += o[2]; }
+  }
+  return { ...base, pos, col, n };
+}
+// Posiciones guardadas en un diseño hecho con otra alineación: las muevo con su habitación
+function moverDiseno(d, antes, ahora) {
+  if (!d) return d; d = JSON.parse(JSON.stringify(d));
+  const delta = ri => { const a = antes?.[ri] || [0, 0, 0], b = ahora?.[ri] || [0, 0, 0]; return [b[0] - a[0], b[2] - a[2]]; };
+  const mover = (o, ri) => { const [dx, dz] = delta(ri); if (typeof o?.x === 'number') o.x += dx; if (typeof o?.z === 'number') o.z += dz; };
+  for (const [k, e] of Object.entries(d.existentes || {})) { const ri = e?.extra ? e.extra.room : +k.split('-')[0]; mover(e, ri); if (e?.extra) mover(e.extra, ri); }
+  for (const e of Object.values(d.extras || {})) mover(e, e.room);
+  for (const it of d.nuevos || []) mover(it, it.room);
+  for (const [ri, pr] of Object.entries(d.propuestas || {})) { const walk = o => { if (!o || typeof o !== 'object') return; if (typeof o.x === 'number' && typeof o.z === 'number') mover(o, +ri); Object.values(o).forEach(walk); }; walk(pr); }
+  return d;
+}
+// Reconstruye el piso con otra alineación de habitaciones (las posiciones de d ya están en esas coordenadas)
+function recargarAlineacion(al, d) {
+  const cur = currentRoom; cloud = alinearNube(flat.data, cloudBase, al);
+  buildFlat(alinearPiso(flat.data, al)); renderRooms(); applyDesign({ ...d, alineacion: al }); setRoom(cur, false); ponerVista(viewMode);
+}
+// ---- Colocar habitaciones a mano: en la planta, arrastrando cada habitación (se pega sola a las puertas cercanas) ----
+let colocando = null;
+function puertasColocar(r) {   // puertas con su normal hacia fuera (la de la pared más cercana)
+  return (r.puertas || []).map(pu => { let mejor = null; for (const w of r.walls) { const f = w.f, dx = pu.x - f.p.x, dz = pu.z - f.p.z, d = Math.abs(dx * f.ez.x + dz * f.ez.z) + Math.max(0, Math.abs(dx * f.ex.x + dz * f.ex.z) - f.w / 2); if (!mejor || d < mejor.d) mejor = { d, f }; }
+    let n = mejor ? [mejor.f.ez.x, mejor.f.ez.z] : [0, 1]; if (pointInPoly(pu.x + n[0] * .3, pu.z + n[1] * .3, r.poly)) n = [-n[0], -n[1]]; return { p: [pu.x, pu.z], w: pu.w, n }; });
+}
+function abrirColocar() {
+  if (!flat || flat.rooms.length < 2) { toast('Solo hay una habitación'); return; }
+  $('opciones').hidden = true; select(null); setRoom(-1); ponerVista('plan');
+  const al0 = design.alineacion || Object.fromEntries(flat.rooms.map(r => [r.i, [0, 0, 0]]));
+  colocando = { al0, alY: Object.fromEntries(flat.rooms.map(r => [r.i, al0[r.i]?.[1] || 0])), mov: Object.fromEntries(flat.rooms.map(r => [r.i, [0, 0]])), puertas: flat.rooms.map(puertasColocar) };
+  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'); svg.id = 'colocar';
+  svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none';
+  view.appendChild(svg);
+  const bar = document.createElement('div'); bar.id = 'colocarBar';
+  bar.style.cssText = 'position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:7;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;background:#fff;padding:8px;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.15);max-width:calc(100% - 24px)';
+  bar.innerHTML = '<span style="align-self:center;font-size:13px;color:#555;padding:0 6px">Arrastra cada habitación a su sitio · se pega sola a las puertas</span><button class="boton" id="colAuto">Automático</button><button class="boton" id="colCancel">Cancelar</button><button class="boton" id="colOk" style="background:#9b3a2a;color:#fff">Listo</button>';
+  view.appendChild(bar);
+  $('colAuto').onclick = () => { const a = alineacionAuto(flat.data, true); if (!a) return; for (const r of flat.rooms) { colocando.mov[r.i] = [a[r.i][0] - (al0[r.i]?.[0] || 0), a[r.i][2] - (al0[r.i]?.[2] || 0)]; colocando.alY[r.i] = a[r.i][1]; } };
+  $('colCancel').onclick = cerrarColocar;
+  $('colOk').onclick = () => {
+    const al = {}; for (const r of flat.rooms) { const m = colocando.mov[r.i], b = al0[r.i] || [0, 0, 0]; al[r.i] = [+(b[0] + m[0]).toFixed(3), colocando.alY[r.i], +(b[2] + m[1]).toFixed(3)]; }
+    for (const it of items) { const m = colocando.mov[it.room]; if (m) { it.x += m[0]; it.z += m[1]; } }
+    const d = serialize(); cerrarColocar(); recargarAlineacion(al, d); changed(); toast('Habitaciones colocadas');
+  };
+  const pantalla = (x, y, z) => { const v = new THREE.Vector3(x, y, z).project(camera), c = renderer.domElement; return [(v.x + 1) / 2 * c.clientWidth, (1 - v.y) / 2 * c.clientHeight]; };
+  const cols = ['#c0392b', '#2471a3', '#239b56', '#7d3c98', '#d68910', '#a04000', '#c2185b', '#5d6d7e', '#117864', '#6e2c00'];
+  let arr = null;
+  const suelo = (ev, y) => { const c = renderer.domElement.getBoundingClientRect(), ndc = new THREE.Vector2((ev.clientX - c.left) / c.width * 2 - 1, -((ev.clientY - c.top) / c.height) * 2 + 1), rc = new THREE.Raycaster(); rc.setFromCamera(ndc, camera); const p = new THREE.Vector3(); return rc.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), p) ? p : null; };
+  const dibujar = () => {
+    if (!colocando) return;
+    let h = '';
+    for (const r of flat.rooms) { const m = colocando.mov[r.i], y = r.floorY, col = cols[r.i % cols.length];
+      const pts = r.poly.map(([x, z]) => pantalla(x + m[0], y, z + m[1]).map(v => v.toFixed(1)).join(',')).join(' ');
+      h += `<polygon data-ri="${r.i}" points="${pts}" fill="${col}" fill-opacity="${arr?.ri === r.i ? .35 : .16}" stroke="${col}" stroke-width="2.5" style="pointer-events:auto;cursor:grab"/>`;
+      const cx = r.poly.reduce((a, p) => a + p[0], 0) / r.poly.length + m[0], cz = r.poly.reduce((a, p) => a + p[1], 0) / r.poly.length + m[1], [sx, sy] = pantalla(cx, y, cz);
+      h += `<text x="${sx}" y="${sy}" text-anchor="middle" font-size="13" font-weight="600" fill="${col}" style="paint-order:stroke;stroke:#fff;stroke-width:3px">${esc(r.name)}</text>`;
+      for (const pu of colocando.puertas[r.i]) { const [px, py] = pantalla(pu.p[0] + m[0], y, pu.p[1] + m[1]); h += `<circle cx="${px}" cy="${py}" r="4.5" fill="#222"/>`; } }
+    svg.innerHTML = h; requestAnimationFrame(dibujar);
+  };
+  svg.onpointerdown = ev => { const ri = +ev.target.dataset?.ri; if (Number.isNaN(ri) || ev.target.dataset.ri == null) return; const r = flat.rooms[ri], p = suelo(ev, r.floorY); if (!p) return;
+    arr = { ri, p0: p, m0: colocando.mov[ri].slice(), id: ev.pointerId }; controls.enabled = false; svg.setPointerCapture(ev.pointerId); ev.preventDefault(); };
+  svg.onpointermove = ev => { if (!arr || ev.pointerId !== arr.id) return; const p = suelo(ev, flat.rooms[arr.ri].floorY); if (!p) return; colocando.mov[arr.ri] = [arr.m0[0] + p.x - arr.p0.x, arr.m0[1] + p.z - arr.p0.z]; };
+  svg.onpointerup = svg.onpointercancel = ev => { if (!arr) return; const b = arr.ri, mb = colocando.mov[b]; let mejor = null;
+    for (const pb of colocando.puertas[b]) for (const r of flat.rooms) { if (r.i === b) continue; const ma = colocando.mov[r.i];
+      for (const pa of colocando.puertas[r.i]) { if (Math.abs(pa.w - pb.w) > .2 || pa.n[0] * pb.n[0] + pa.n[1] * pb.n[1] > -.8) continue;
+        const t = [pa.p[0] + ma[0] + pa.n[0] * .1 - pb.p[0], pa.p[1] + ma[1] + pa.n[1] * .1 - pb.p[1]], d = Math.hypot(t[0] - mb[0], t[1] - mb[1]); if (d < .5 && (!mejor || d < mejor.d)) mejor = { t, d }; } }
+    if (mejor) colocando.mov[b] = mejor.t;
+    arr = null; controls.enabled = true; };
+  dibujar();
+}
+function cerrarColocar() { colocando = null; $('colocar')?.remove(); $('colocarBar')?.remove(); controls.enabled = true; }
+let cloudBase = null;
 async function loadProject({ name, piso, ply, savedDesign }) {
   $('loadMsg').textContent = 'Construyendo el modelo…'; $('carga').style.display = 'grid'; $('hoja').classList.remove('abierta');
   sync?.cerrar(); sync = null; verPresencia([]); clearTimeout(saveTimer); clearTimeout(changed.h);   // que no se guarde a medias el piso anterior
   const paso = async t => { $('loadMsg').textContent = t; await new Promise(r => setTimeout(r, 30)); };
   try {
   await paso('Leyendo la nube de puntos…');
-  cloud = ply ? parsePLY(ply) : null; flat = { name, data: piso, rooms: [] };
+  cloudBase = ply ? parsePLY(ply) : null; flat = { name, data: piso, rooms: [] };
+  let d = savedDesign || null; const local = store.get('diseno:' + name); if (local && (!d || local.actualizado > d.actualizado)) d = local; if (d && !d.sync && savedDesign?.sync) d = { ...d, sync: savedDesign.sync };
+  // habitaciones encajadas: la alineación guardada o, si salen solapadas y no hay ninguna, la automática
+  let al = d?.alineacion || null;
+  if (!al) { await paso('Encajando las habitaciones…'); al = alineacionAuto(piso); if (al) { d = moverDiseno(d, null, al) || {}; d.alineacion = al; if (name !== 'piso_ejemplo') toast('Las habitaciones salían solapadas: las he encajado por sus puertas. Puedes retocarlo en ⋯ › Colocar habitaciones'); } }
+  cloud = al ? alinearNube(piso, cloudBase, al) : cloudBase;
   await paso('Preparando los modelos 3D…');
   await Promise.race([modelsReady.catch(() => {}), new Promise(r => setTimeout(r, 8000))]);   // si los modelos tardan, sigo sin ellos
   await paso('Construyendo el piso…');
-  buildFlat(piso); renderRooms();
-  let d = savedDesign || null; const local = store.get('diseno:' + name); if (local && (!d || local.actualizado > d.actualizado)) d = local; if (d && !d.sync && savedDesign?.sync) d = { ...d, sync: savedDesign.sync };
+  buildFlat(al ? alinearPiso(piso, al) : piso); renderRooms();
   await paso('Colocando los muebles…');
   applyDesign(d); setRoom(-1); historial.pila = []; historial.pos = -1; instantanea();
+  if (d?.alineacion && !savedDesign?.alineacion && name !== 'piso_ejemplo') changed();
   } catch (e) { console.error(e); $('loadMsg').innerHTML = 'No se pudo construir el modelo.<br><small>' + esc(String(e?.stack || e).split('\n').slice(0, 3).join(' · ')) + '</small>'; return; }
   $('carga').style.display = 'none';
   if (name !== 'piso_ejemplo') iniciarSincro(piso);
@@ -2312,9 +2468,10 @@ $('resetBtn').onclick = () => {
   for (const r of flat.rooms) for (const o of r.objects) { const p = products.get(o.pid); if (!p?.orig) continue; Object.assign(p, p.orig); for (const k of ['modelo', 'nota', 'colorAjustado', 'forma', 'estiloBase']) p[k] = undefined; p.estiloPropio = false; }
   applyDesign({ sync: design?.sync || null, propuestas: design?.propuestas || {} }); setRoom(currentRoom, false); changed(); toast('Piso como al escanearlo · ↶ para deshacer');
 };
+$('colocarBtn').onclick = abrirColocar;
 $('claudeBtn').onclick = () => { if (!flat) return; $('opciones').hidden = true;
   try { window.webkit.messageHandlers.revisarClaude.postMessage(JSON.stringify({ piso: flat.name, enlace: enlacePiso(), muebles: listarExistentes(), paredes: flat.rooms.flatMap(r => r.walls.map(w => ({ key: 'p' + w.key, habitacion: r.name, largo: Math.round(w.f.w * 100), alto: Math.round(w.f.h * 100), transform: new THREE.Matrix4().compose(w.f.p, w.f.q, new THREE.Vector3(1, 1, 1)).elements.map(v => +v.toFixed(5)) }))), sinDetectar: (() => { try { return huecosSinModelar(); } catch { return []; } })() })); toast('Preparando el paquete para Claude…'); } catch { toast('Esto se hace desde la app del iPhone'); } };
-window.__planner = { existentes: listarExistentes, editarExistente, buscarCatalogo, huecosSinModelar, añadirExistente, quitarExtra, geometria, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
+window.__planner = { alineacionAuto: (f) => alineacionAuto(flat.data, f), recargarAlineacion: (al) => recargarAlineacion(al, serialize()), abrirColocar, existentes: listarExistentes, editarExistente, buscarCatalogo, huecosSinModelar, añadirExistente, quitarExtra, geometria, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
 if (EN_APP) {
   $('webOnly').style.display = 'none'; $('closeBtn').hidden = false; $('claudeBtn').hidden = false;
   $('closeBtn').onclick = () => { save(); try { window.webkit.messageHandlers.cerrar.postMessage(''); } catch {} };
