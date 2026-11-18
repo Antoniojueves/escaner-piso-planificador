@@ -431,6 +431,16 @@ function armario(g, W, D, H, c, o) {
     const t = .018; caja(g, W, H, t, m, 0, 0, -D / 2 + t / 2); for (const sx of [-1, 1]) caja(g, t, H, D - .02, m, sx * (W / 2 - t / 2), 0, -.01);
     caja(g, W, t, D - .02, m, 0, H - t, -.01); caja(g, W, .08, D - .02, m, 0, 0, -.01);
     const nb = Math.max(2, Math.round(H / .38)); for (let i = 1; i < nb; i++) caja(g, W - 2 * t, .015, D - .06, m, 0, .08 + i * (H - .1) / nb, -.03);
+  } else if (o.empotrado) {   // empotrado: fondo oscuro (se ve en las juntas entre puertas) y marco alrededor
+    caja(g, W, H, D - .02, M(new THREE.Color(c).multiplyScalar(.45).getStyle()), 0, 0, -.01);
+    const mf = .035; caja(g, W, mf, D, m, 0, H - mf, 0); for (const sx of [-1, 1]) caja(g, mf, H, D, m, sx * (W / 2 - mf / 2), 0, 0);
+    const n = o.puertas ?? Math.max(1, Math.round(W / .5)), iw = W - 2 * mf, pw = iw / n, dh = H - mf - .01;
+    const sombraJunta = M(new THREE.Color(c).multiplyScalar(.35).getStyle());
+    for (let i = 0; i < n; i++) { const x = -iw / 2 + (i + .5) * pw; caja(g, pw - .016, dh, .02, puertaM, x, .005, D / 2 - .012);
+      if (i) caja(g, .012, dh, .004, sombraJunta, -iw / 2 + i * pw, .005, D / 2 - .02);   // junta entre puertas bien marcada
+      caja(g, .014, .32, .02, metal, x + (i % 2 ? -1 : 1) * (pw / 2 - .07), H * .48 - .16, D / 2 + .006); }   // tirador vertical
+    caja(g, iw, .012, .004, sombraJunta, 0, H - mf - .006, D / 2 - .02);
+    return;
   } else caja(g, W, H, D - .02, m, 0, 0, -.01);
   const n = o.puertas ?? Math.max(1, Math.round(W / .5)), pw = W / n;
   for (let i = 0; i < n; i++) {

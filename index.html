@@ -289,7 +289,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-19';
+const PLANNER_VERSION = '2026.11.18-20';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -2267,6 +2267,12 @@ function huecosSinModelar() {
 }
 // Añade uno de tus muebles que el escaneo no detectó (desde un hueco de huecosSinModelar o con posición x/z en metros)
 function añadirExistente(c) {
+  if (c.pared) {   // pegado o empotrado en una pared: delante de su cara (la pared mide 10 cm de grueso), con el giro de la pared
+    const r = flat.rooms.find(r => r.walls.some(w => w.key === c.pared)); if (!r) throw new Error('No hay ninguna pared ' + c.pared);
+    const w = r.walls.find(w => w.key === c.pared), f = w.f, t = (c.posicion ?? .5) - .5, d = (c.d || 4) / 100;
+    let nx = f.ez.x, nz = f.ez.z; const px = f.p.x + f.ex.x * t * f.w, pz = f.p.z + f.ex.z * t * f.w; if (!pointInPoly(px + nx * .25, pz + nz * .25, r.poly)) { nx = -nx; nz = -nz; }
+    c = { ...c, room: r.i, d: c.d || 4, x: px + nx * (.05 + .015 + d / 2), z: pz + nz * (.05 + .015 + d / 2), rot: Math.atan2(nx, nz) };
+  }
   const h = c.hueco ? (añadirExistente.huecos || (añadirExistente.huecos = huecosSinModelar())).find(x => x.key === c.hueco) : null;
   if (c.hueco && !h) throw new Error('No hay ningún hueco ' + c.hueco);
   const e = { room: c.room ?? h?.room, cat: c.cat || 'storage', name: c.name || 'Mueble', w: c.w || h?.w, d: c.d || h?.d, h: c.h || h?.h, x: c.x ?? h?.x, z: c.z ?? h?.z, rot: c.rot ?? h?.rot ?? 0, elev: c.elev || 0, color: c.color || h?.color };
