@@ -822,10 +822,14 @@ function estor(g, W, D, H, c, o) {     // cajón arriba, tela a medio bajar y ba
 function cocina(g, W, D, H, c, o = {}) {
   const frente = M(c, { madera: false, roughness: .18 }), junta = M(new THREE.Color(c).multiplyScalar(.45).getStyle(), { madera: false }), inox = METAL('#b8bcbf'), negro = M('#151515', { madera: false, roughness: .1 });
   const mods = Math.max(1, Math.round(W / (o.tipo === 'alto' ? .5 : .6))), mw = W / mods, at = f => Math.min(mods - 1, Math.max(0, Math.floor(f * mods)));
+  if (o.tipo === 'campana') {   // campana de acero: visera abajo y chimenea hasta arriba
+    caja(g, W, .08, D, inox, 0, 0, 0); caja(g, W - .04, .008, D - .04, M('#3a3d40', { madera: false }), 0, -.004, 0); caja(g, Math.min(.28, W * .45), H - .08, Math.min(.25, D * .5), inox, 0, .08, -D / 2 + Math.min(.25, D * .5) / 2);
+    return;
+  }
   if (o.tipo === 'alto') {
     caja(g, W, H, D, frente, 0, 0, 0);
     for (let i = 1; i < mods; i++) caja(g, .006, H - .01, .004, junta, -W / 2 + i * mw, .005, D / 2);
-    for (let i = 0; i < mods; i++) caja(g, .012, .16, .02, inox, -W / 2 + (i + .5) * mw + (i % 2 ? -1 : 1) * (mw / 2 - .05), .03, D / 2 + .01);
+    for (let i = 0; i < mods; i++) { if (o.tirador === 'horizontal') caja(g, mw * .6, .014, .02, inox, -W / 2 + (i + .5) * mw, .05, D / 2 + .01); else caja(g, .012, .16, .02, inox, -W / 2 + (i + .5) * mw + (i % 2 ? -1 : 1) * (mw / 2 - .05), .03, D / 2 + .01); }
     if (o.campana != null) { const x = -W / 2 + (at(o.campana) + .5) * mw; caja(g, .6, .1, D + .12, inox, x, -.1, .06); caja(g, .56, .012, D + .08, M('#3a3d40', { madera: false }), x, -.112, .06); }
     return;
   }
