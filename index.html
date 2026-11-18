@@ -289,7 +289,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-17';
+const PLANNER_VERSION = '2026.11.18-18';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -2274,6 +2274,14 @@ function añadirExistente(c) {
   const aj = {}; for (const k of ['estilo', 'modelo', 'nota', 'color2', 'forma']) if (c[k] != null) aj[k] = c[k];
   return Object.keys(aj).length ? editarExistente(key, aj) : (changed(), listarExistentes().find(x => x.key === key));
 }
+// Geometría de las habitaciones para la revisión desde un chat: paredes (extremos, normal hacia dentro), puertas y ventanas
+function geometria() {
+  return flat.rooms.map(r => { const cx = r.poly.reduce((a, p) => a + p[0], 0) / r.poly.length, cz = r.poly.reduce((a, p) => a + p[1], 0) / r.poly.length, f3 = v => +v.toFixed(3);
+    return { room: r.i, nombre: r.name, alto: f3(r.height), suelo: f3(r.floorY), contorno: r.poly.map(p => p.map(f3)),
+      paredes: r.walls.map(w => { const f = w.f, a = f.p.clone().addScaledVector(f.ex, -f.w / 2), b = f.p.clone().addScaledVector(f.ex, f.w / 2), nz = (cx - f.p.x) * f.ez.x + (cz - f.p.z) * f.ez.z >= 0 ? 1 : -1;
+        return { key: w.key, de: [f3(a.x), f3(a.z)], a: [f3(b.x), f3(b.z)], largo: f3(f.w), haciaDentro: [f3(f.ez.x * nz), f3(f.ez.z * nz)], rot: f3(-Math.atan2(f.ex.z, f.ex.x)) }; }),
+      puertas: r.puertas.map(p => ({ x: f3(p.x), z: f3(p.z), ancho: f3(p.w) })), ventanas: r.ventanas.map(v => ({ x: f3(v.x), z: f3(v.z), ancho: f3(v.w), y0: f3(v.y0), y1: f3(v.y1) })) }; });
+}
 function quitarExtra(key) { if (!design.extras?.[key]) throw new Error('Solo se pueden borrar los añadidos'); const { [key]: _, ...rest } = design.extras; design.extras = rest; const it = items.find(i => i.existing === key); if (it) removeItem(it); for (const r of flat.rooms) r.objects = r.objects.filter(o => o.key !== key); products.delete('ex' + key); changed(); }
 // Para la revisión desde un chat: cambia cómo se ve uno de tus muebles (se guarda y se sincroniza solo)
 function editarExistente(key, c) {
@@ -2297,7 +2305,7 @@ $('resetBtn').onclick = () => {
 };
 $('claudeBtn').onclick = () => { if (!flat) return; $('opciones').hidden = true;
   try { window.webkit.messageHandlers.revisarClaude.postMessage(JSON.stringify({ piso: flat.name, enlace: enlacePiso(), muebles: listarExistentes(), sinDetectar: (() => { try { return huecosSinModelar(); } catch { return []; } })() })); toast('Preparando el paquete para Claude…'); } catch { toast('Esto se hace desde la app del iPhone'); } };
-window.__planner = { existentes: listarExistentes, editarExistente, buscarCatalogo, huecosSinModelar, añadirExistente, quitarExtra, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
+window.__planner = { existentes: listarExistentes, editarExistente, buscarCatalogo, huecosSinModelar, añadirExistente, quitarExtra, geometria, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
 if (EN_APP) {
   $('webOnly').style.display = 'none'; $('closeBtn').hidden = false; $('claudeBtn').hidden = false;
   $('closeBtn').onclick = () => { save(); try { window.webkit.messageHandlers.cerrar.postMessage(''); } catch {} };
