@@ -577,6 +577,7 @@ export function construir(p, acabado) {
     case 'estor': estor(g, W, D, H, c, o); break;
     case 'radiador': radiador(g, W, D, H, c, o); break;
     case 'ventana': ventana(g, W, D, H, c, o); break;
+    case 'cocina': cocina(g, W, D, H, c, o); break;
     case 'guitarra': guitarra(g, W, D, H, c, o); break;
     default: return null;
   }
@@ -816,6 +817,31 @@ function estor(g, W, D, H, c, o) {     // cajón arriba, tela a medio bajar y ba
   if (!o.plisado) { cil(g, .003, .003, Math.min(.5, alto), M('#cfcac0'), W / 2 - .05, H - .055 - Math.min(.5, alto), z + .03, 6); }
 }
 // Ventana de aluminio: marco, parteluz, cristal, alféizar y persiana enrollable a medio bajar (o.persiana = fracción bajada)
+// Cocina a medida: tramo bajo (zócalo de acero, frentes de cajones con tirador de barra, encimera, y opcionalmente fregadero,
+// placa y horno en la posición indicada de 0 a 1) o tramo alto (puertas, y campana debajo si se pide)
+function cocina(g, W, D, H, c, o = {}) {
+  const frente = M(c, { madera: false, roughness: .18 }), junta = M(new THREE.Color(c).multiplyScalar(.45).getStyle(), { madera: false }), inox = METAL('#b8bcbf'), negro = M('#151515', { madera: false, roughness: .1 });
+  const mods = Math.max(1, Math.round(W / (o.tipo === 'alto' ? .5 : .6))), mw = W / mods, at = f => Math.min(mods - 1, Math.max(0, Math.floor(f * mods)));
+  if (o.tipo === 'alto') {
+    caja(g, W, H, D, frente, 0, 0, 0);
+    for (let i = 1; i < mods; i++) caja(g, .006, H - .01, .004, junta, -W / 2 + i * mw, .005, D / 2);
+    for (let i = 0; i < mods; i++) caja(g, .012, .16, .02, inox, -W / 2 + (i + .5) * mw + (i % 2 ? -1 : 1) * (mw / 2 - .05), .03, D / 2 + .01);
+    if (o.campana != null) { const x = -W / 2 + (at(o.campana) + .5) * mw; caja(g, .6, .1, D + .12, inox, x, -.1, .06); caja(g, .56, .012, D + .08, M('#3a3d40', { madera: false }), x, -.112, .06); }
+    return;
+  }
+  const encH = .03, zoc = .1, cuerpoH = H - encH - zoc, enc = M(o.colorEncimera || '#f3f1ec', { madera: false, roughness: .3 });
+  caja(g, W, zoc, D - .06, inox, 0, 0, -.03); caja(g, W, cuerpoH, D - .02, junta, 0, zoc, -.01);
+  const horno = o.horno != null ? at(o.horno) : -1;
+  for (let i = 0; i < mods; i++) { const x = -W / 2 + (i + .5) * mw;
+    if (i === horno) { caja(g, mw - .01, cuerpoH - .01, .02, inox, x, zoc + .005, D / 2 - .02); caja(g, mw * .78, cuerpoH * .45, .006, negro, x, zoc + cuerpoH * .2, D / 2); caja(g, mw * .7, .02, .03, inox, x, zoc + cuerpoH * .75, D / 2 + .02); continue; }
+    const h1 = cuerpoH * .3, h2 = cuerpoH - h1 - .006;
+    caja(g, mw - .008, h2, .02, frente, x, zoc, D / 2 - .02); caja(g, mw - .008, h1, .02, frente, x, zoc + h2 + .006, D / 2 - .02);
+    for (const y of [zoc + h2 - .06, zoc + h2 + h1 - .06]) caja(g, mw * .62, .016, .025, inox, x, y, D / 2 + .01); }
+  caja(g, W + .02, encH, D + .02, enc, 0, H - encH, 0);
+  if (o.fregadero != null) { const x = -W / 2 + (at(o.fregadero) + .5) * mw; caja(g, .5, .006, .4, inox, x, H + .001, .02); caja(g, .44, .004, .34, M('#7d8286', { madera: false }), x, H + .006, .02);
+    caja(g, .03, .32, .03, inox, x, H, -D / 2 + .1); caja(g, .03, .03, .2, inox, x, H + .3, -D / 2 + .2); }
+  if (o.placa != null) { const x = -W / 2 + (at(o.placa) + .5) * mw; caja(g, .58, .006, .5, negro, x, H + .001, 0); }
+}
 export function ventana(g, W, D, H, c, o = {}) {
   const alu = M(o.marco || '#dfe1e2', { madera: false }), lama = M(o.colorPersiana || '#c9ccce', { madera: false }), junta = M('#8d9194', { madera: false });
   const vidrio = new THREE.MeshStandardMaterial({ color: '#cfe3f2', emissive: '#eaf4fc', emissiveIntensity: .5, transparent: true, opacity: .5, roughness: .05, metalness: .1 });
