@@ -290,7 +290,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe, ventana as ventanaMueble } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-23';
+const PLANNER_VERSION = '2026.11.18-24';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -834,7 +834,9 @@ function buildFlat(data) {
     const floorMat = fc ? new THREE.MeshStandardMaterial({ color: colHex(fc.main), roughness: .8 }) : new THREE.MeshStandardMaterial({ color: '#ffffff', map: PARQUET, roughness: .62 });
     const floor = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(poly.map(([x, z]) => new THREE.Vector2(x, -z)))), floorMat);
     floor.rotation.x = -Math.PI / 2; floor.position.y = floorY + .002; floor.receiveShadow = true; floor.userData.floorOf = ri; g.add(floor);
-    if (ri === 0) { const wc = sampleColors((x, y, z) => (y > floorY + 1.3 && y < floorY + height - .2 && !pointInPoly(x, z, poly)) ? y : false, 2000); if (wc) wallMat.color.set(colHex(wc.main.map(v => Math.min(250, v * 1.08)))); }
+    if (ri === 0) { const wc = sampleColors((x, y, z) => (y > floorY + 1.3 && y < floorY + height - .2 && !pointInPoly(x, z, poly)) ? y : false, 2000);
+      if (wc) { let c = wc.main.map(v => Math.min(250, v * 1.08)); const luma = .3 * c[0] + .59 * c[1] + .11 * c[2];   // las paredes casi siempre son claras: si sale oscuro (puertas, suelo colados), lo aclaro
+        if (luma < 200) { const k = Math.min(.85, (200 - luma) / 120 + .3); c = c.map((v, i) => v * (1 - k) + [246, 243, 236][i] * k); } wallMat.color.set(colHex(c)); } }
     let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
     poly.forEach(([x, z]) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); });
     const objects = h.objetos.map((o, oi) => {
@@ -2471,7 +2473,7 @@ $('resetBtn').onclick = () => {
 $('colocarBtn').onclick = abrirColocar;
 $('claudeBtn').onclick = () => { if (!flat) return; $('opciones').hidden = true;
   try { window.webkit.messageHandlers.revisarClaude.postMessage(JSON.stringify({ piso: flat.name, enlace: enlacePiso(), muebles: listarExistentes(), paredes: flat.rooms.flatMap(r => r.walls.map(w => ({ key: 'p' + w.key, habitacion: r.name, largo: Math.round(w.f.w * 100), alto: Math.round(w.f.h * 100), transform: new THREE.Matrix4().compose(w.f.p, w.f.q, new THREE.Vector3(1, 1, 1)).elements.map(v => +v.toFixed(5)) }))), sinDetectar: (() => { try { return huecosSinModelar(); } catch { return []; } })() })); toast('Preparando el paquete para Claude…'); } catch { toast('Esto se hace desde la app del iPhone'); } };
-window.__planner = { alineacionAuto: (f) => alineacionAuto(flat.data, f), recargarAlineacion: (al) => recargarAlineacion(al, serialize()), abrirColocar, existentes: listarExistentes, editarExistente, buscarCatalogo, huecosSinModelar, añadirExistente, quitarExtra, geometria, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
+window.__planner = { alineacionAuto: (f) => alineacionAuto(flat.data, f), recargarAlineacion: (al) => recargarAlineacion(al, serialize()), abrirColocar, existentes: listarExistentes, editarExistente, buscarCatalogo, huecosSinModelar, añadirExistente, quitarExtra, geometria, pintarPared: (k, c) => { pintarPared(k, c); changed(); }, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
 if (EN_APP) {
   $('webOnly').style.display = 'none'; $('closeBtn').hidden = false; $('claudeBtn').hidden = false;
   $('closeBtn').onclick = () => { save(); try { window.webkit.messageHandlers.cerrar.postMessage(''); } catch {} };
