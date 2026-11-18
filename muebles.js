@@ -454,9 +454,13 @@ function muebleTV(g, W, D, H, c, o) {
   const m = M(c), dark = M(new THREE.Color(c).multiplyScalar(.82).getStyle()), metal = METAL('#555');
   switch (o.t) {
     case 'composicion': { // salón modular: columna alta cerrada, mueble bajo de puertas, banco de TV con cajones, alto de cristal y balda
-      const t = .018, cw = Math.min(.45, W * .2), lw = Math.min(.9, W * .3), bw = W - cw - lw, bh = Math.min(.45, H * .25), lh = Math.min(.55, H * .3), x0 = -W / 2;
+      const ew = o.estanteria ? Math.min(.45, W * .18) : 0, W0 = W - ew;   // estantería abierta con libros al final (derecha)
+      if (ew) { const xe = W / 2 - ew / 2, bm = M(c, { madera: false }); caja(g, .018, H, D, bm, xe - ew / 2 + .009, 0, 0); caja(g, .018, H, D, bm, xe + ew / 2 - .009, 0, 0); caja(g, ew, .018, D, bm, xe, H - .018, 0);
+        const lib = ['#7a2e2e', '#2e4a7a', '#c9a34a', '#3d6b4a', '#555', '#a0522d'];
+        for (let i = 0; i < 6; i++) { const y = i * (H - .02) / 6; caja(g, ew - .03, .018, D - .01, bm, xe, y, 0); if (i > 0 && i < 6) { let x = xe - ew / 2 + .03; for (let k = 0; x < xe + ew / 2 - .05; k++) { const bwk = .025 + (k % 3) * .008; caja(g, bwk, .2 + (k % 4) * .02, D * .7, M(lib[(i + k) % lib.length], { madera: false }), x + bwk / 2, y + .018, 0); x += bwk + .004; } } } }
+      const t = .018, cw = o.columna === false ? 0 : Math.min(.45, W0 * .2), lw = Math.min(.9, W0 * .3), bw = W0 - cw - lw, bh = Math.min(.45, H * .25), lh = Math.min(.55, H * .3), x0 = -W / 2;
       const brillo = M(c, { madera: false, roughness: .25 }), cristal = M(o.colorCristal || '#cfe0d6', { madera: false, roughness: .2 });
-      caja(g, cw, H, D, brillo, x0 + cw / 2, 0, 0); caja(g, .004, H - .04, .005, dark, x0 + cw / 2, .02, D / 2 + .001);   // columna con puerta
+      if (cw) { caja(g, cw, H, D, brillo, x0 + cw / 2, 0, 0); caja(g, .004, H - .04, .005, dark, x0 + cw / 2, .02, D / 2 + .001); }   // columna con puerta
       caja(g, lw, lh, D, brillo, x0 + cw + lw / 2, 0, 0); caja(g, .004, lh - .04, .005, dark, x0 + cw + lw / 2, .02, D / 2 + .001);   // bajo de dos puertas
       const bx = x0 + cw + lw + bw / 2; caja(g, bw, bh, D, brillo, bx, 0, 0);
       for (let i = 1; i < 2; i++) caja(g, bw - .02, .004, .005, dark, bx, bh * i / 2, D / 2 + .001);   // dos cajones
