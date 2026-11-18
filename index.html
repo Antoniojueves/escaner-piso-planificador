@@ -157,7 +157,8 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
   #pie { flex-wrap:nowrap; } #pie button { padding:7px 10px; font-size:13px; white-space:nowrap; flex:none; } #pie .tot { min-width:0; }
   #pie .tot span { font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:42vw; }
   .envivo { top:calc(max(12px, env(safe-area-inset-top)) + 46px); }
-  #barra { left:8px; right:8px; max-width:none; }
+  #barra { left:8px; right:8px; max-width:none; flex-wrap:wrap; overflow:visible; row-gap:6px; }
+  #barra > * { flex:none; } #barra .salas { flex:1 1 0; min-width:0; overflow-x:auto; flex-wrap:nowrap; scrollbar-width:none; } #barra .salas::-webkit-scrollbar { display:none; } #barra .salas button { flex:none; white-space:nowrap; }
   .seg button { padding:7px 11px; font-size:13.5px; }
 }
 
@@ -287,7 +288,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-13';
+const PLANNER_VERSION = '2026.11.18-14';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
