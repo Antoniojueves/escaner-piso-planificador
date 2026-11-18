@@ -55,6 +55,7 @@ function tirador(g, tipo, x, y, z, m, w = .12) {
 
 // ---------- SOFÁS ----------
 function sofa(g, W, D, H, c, o) {
+  if (o.chaiseIzq && !o._espejo) { const sub = new THREE.Group(); sub.scale.x = -1; g.add(sub); return sofa(sub, W, D, H, c, { ...o, _espejo: true }); }   // chaise al otro lado
   // sofás en esquina (L) y en U: un tramo atrás de todo el ancho y alas laterales que vienen hacia delante
   if (o.forma === 'esquina' || o.forma === 'u') {
     const fd = Math.min(o.fondo ?? .97, D * .6), z0 = -D / 2, ala = D - fd, u = o.forma === 'u';
