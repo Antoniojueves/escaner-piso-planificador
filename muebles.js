@@ -452,6 +452,16 @@ function armario(g, W, D, H, c, o) {
 function muebleTV(g, W, D, H, c, o) {
   const m = M(c), dark = M(new THREE.Color(c).multiplyScalar(.82).getStyle()), metal = METAL('#555');
   switch (o.t) {
+    case 'composicion': { // salón modular: columna alta cerrada, mueble bajo de puertas, banco de TV con cajones, alto de cristal y balda
+      const t = .018, cw = Math.min(.45, W * .2), lw = Math.min(.9, W * .3), bw = W - cw - lw, bh = Math.min(.45, H * .25), lh = Math.min(.55, H * .3), x0 = -W / 2;
+      const brillo = M(c, { madera: false, roughness: .25 }), cristal = M(o.colorCristal || '#cfe0d6', { madera: false, roughness: .2 });
+      caja(g, cw, H, D, brillo, x0 + cw / 2, 0, 0); caja(g, .004, H - .04, .005, dark, x0 + cw / 2, .02, D / 2 + .001);   // columna con puerta
+      caja(g, lw, lh, D, brillo, x0 + cw + lw / 2, 0, 0); caja(g, .004, lh - .04, .005, dark, x0 + cw + lw / 2, .02, D / 2 + .001);   // bajo de dos puertas
+      const bx = x0 + cw + lw + bw / 2; caja(g, bw, bh, D, brillo, bx, 0, 0);
+      for (let i = 1; i < 2; i++) caja(g, bw - .02, .004, .005, dark, bx, bh * i / 2, D / 2 + .001);   // dos cajones
+      caja(g, bw * .85, .4, Math.min(.35, D), brillo, bx, Math.min(H - .45, 1.45), -D / 2 + Math.min(.35, D) / 2); caja(g, bw * .85 - .03, .34, .006, cristal, bx, Math.min(H - .45, 1.45) + .03, -D / 2 + Math.min(.35, D) + .002);   // alto con puerta de cristal
+      caja(g, lw + cw * .2, .03, .24, brillo, x0 + cw + lw / 2, Math.min(H - .3, 1.25), -D / 2 + .12);   // balda flotante
+      break; }
     case 'torres': { // mueble de TV con estanterías/armarios altos a los lados (HAVSTA, VIHALS, HEMNES, BRIMNES…)
       const tw = Math.min(.6, W * .22), bh = Math.min(.55, H * .4), t = .018;
       caja(g, W - 2 * tw, bh, D, m, 0, .05, 0); caja(g, W - 2 * tw - .04, .05, D - .04, dark, 0, 0, 0);
