@@ -110,7 +110,7 @@ export async function conectar(id, { nombre, dispositivo, recibir, presencia, es
     if (s.metadata.hasPendingWrites || j === ultimoPrincipal) return; ultimoPrincipal = j; avisar();
   }, e => estado('error', e)));
   await new Promise(res => {
-    unsubs.push(F.onSnapshot(col, s => {
+    unsubs.push(F.onSnapshot(col, { includeMetadataChanges: true }, s => {   // también avisa al pasar de la caché al servidor (si no, se quedaba en «Sin conexión»)
       let cambio = false;
       s.docChanges().forEach(c => {
         if (c.type === 'removed') { remoto.delete(c.doc.id); if (ultimo.has(c.doc.id)) { ultimo.delete(c.doc.id); cambio = true; } return; }
