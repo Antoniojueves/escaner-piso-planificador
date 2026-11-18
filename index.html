@@ -215,7 +215,7 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
     <div id="ayuda">Toca una habitación para entrar · arrastra los muebles para moverlos · arrastra el fondo para girar, pellizca para acercar</div>
     <div id="pared"><div class="g">Pared</div><div class="n" id="paredNom"></div>
       <div id="paredCols"></div>
-      <div class="fila"><label>Otro color <input type="color" id="paredOtro"></label><button class="boton" id="paredTodas">Toda la habitación</button><button class="boton" id="paredQuitar">Color original</button><button class="boton" id="paredCerrar">Cerrar</button></div>
+      <div class="fila"><label>Otro color <input type="color" id="paredOtro"></label><button class="boton" id="paredTodas">Toda la habitación</button><button class="boton" id="paredQuitar">Color original</button><button class="boton" id="paredSobra" title="Si es un trozo de otra habitación que se coló en el escaneo">Quitar pared</button><button class="boton" id="paredCerrar">Cerrar</button></div>
     </div>
     <div id="sel">
       <div class="selCab"><img id="selFoto" alt=""><div class="selTxt"><div class="g" id="selG"></div><div class="n" id="selName"></div><div class="d" id="selInfo"></div></div><button class="x" id="selX" aria-label="Cerrar">×</button></div>
@@ -290,7 +290,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe, ventana as ventanaMueble } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-25';
+const PLANNER_VERSION = '2026.11.18-26';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -813,6 +813,7 @@ function buildFlat(data) {
     const openings = [...h.puertas.map(o => ({ o, k: 'door' })), ...h.ventanas.map(o => ({ o, k: 'window' })), ...h.aberturas.map(o => ({ o, k: 'open' }))];
     const walls = [];
     h.paredes.forEach(w => {
+      if (w._quitada) { walls.push({ f: frame(w), pieces: [], openings: [], key: ri + '-' + walls.length, quitada: true }); return; }   // pared que sobra (un trozo de otra habitación)
       const f = frame(w), holes = [], ops = [];
       for (const { o, k } of openings) {
         const fo = frame(o), d = fo.p.clone().sub(f.p), lx = d.dot(f.ex), ly = d.dot(f.ey), lz = d.dot(f.ez);
@@ -829,7 +830,7 @@ function buildFlat(data) {
       acabadosPared(w, f, holes, ops, g, h);
       walls.push({ f, pieces, openings: ops, key });
     });
-    const poly = floorPolygon(h.paredes) || [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+    const poly = floorPolygon(h.paredes.filter(w => !w._quitada)) || [[-1, -1], [1, -1], [1, 1], [-1, 1]];
     const fc = sampleColors((x, y, z) => (Math.abs(y - floorY) < .04 && pointInPoly(x, z, poly)) ? y : false, 2500);
     const floorMat = fc ? new THREE.MeshStandardMaterial({ color: colHex(fc.main), roughness: .8 }) : new THREE.MeshStandardMaterial({ color: '#ffffff', map: PARQUET, roughness: .62 });
     const floor = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(poly.map(([x, z]) => new THREE.Vector2(x, -z)))), floorMat);
@@ -1257,6 +1258,7 @@ function abrirPared(k) {
   $('paredTodas').onclick = () => { const c = design?.paredes?.[k]; if (!c) return toast('Elige primero un color'); r.walls.forEach(w => pintarPared(w.key, c)); marcarPared(k, true); changed(); toast('Pintada toda la habitación'); };
   $('paredQuitar').onclick = () => { pintarPared(k, null); marcarPared(k, true); abrirPared(k); changed(); };
   $('paredCerrar').onclick = cerrarPared;
+  $('paredSobra').onclick = () => { quitarPared(k); toast('Pared quitada · ↶ para deshacer, o ⋯ › Volver al piso escaneado'); };
   $('pared').style.display = 'block';
 }
 function cerrarPared() { if (paredSel) marcarPared(paredSel, false); paredSel = null; $('pared').style.display = 'none'; }
@@ -1646,7 +1648,7 @@ function serialize() {
     if (o.extra && design?.extras?.[o.key]) ex[o.key].extra = design.extras[o.key]; }));
   return { version: 2, proyecto: flat.name, actualizado: new Date().toISOString(),
     nuevos: items.filter(i => !i.existing).map(({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase }) => ({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase: fase || null })),
-    existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {}, suelos: design?.suelos || {}, propuestas: design?.propuestas || {}, extras: design?.extras || {}, alineacion: design?.alineacion || null, sync: design?.sync || null };
+    existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {}, suelos: design?.suelos || {}, propuestas: design?.propuestas || {}, extras: design?.extras || {}, alineacion: design?.alineacion || null, paredesQuitadas: design?.paredesQuitadas || [], sync: design?.sync || null };
 }
 function applyDesign(d) {
   [...items].forEach(i => furnGroup.remove(i.obj)); items = []; select(null);
@@ -1708,7 +1710,7 @@ function moverA(it, n) {
 }
 function aplicarRemoto(d) {
   if (!flat || !d) return;
-  if (d.alineacion && JSON.stringify(d.alineacion) !== JSON.stringify(design?.alineacion || null)) { if (colocando) cerrarColocar(); recargarAlineacion(d.alineacion, d); return; }   // habitaciones recolocadas en el otro dispositivo
+  if ((d.alineacion && JSON.stringify(d.alineacion) !== JSON.stringify(design?.alineacion || null)) || JSON.stringify(d.paredesQuitadas || []) !== JSON.stringify(design?.paredesQuitadas || [])) { if (colocando) cerrarColocar(); recargarAlineacion(d.alineacion || design?.alineacion || null, d); return; }   // habitaciones recolocadas en el otro dispositivo
   let cambio = false; const sel = selected ? slotIdOf(selected) : null;
   if (d.propuestas && JSON.stringify(d.propuestas) !== JSON.stringify(design?.propuestas || {})) { design.propuestas = d.propuestas; cambio = true; }
   { // muebles añadidos en el otro dispositivo (vienen en el documento de cada mueble; quitarlos = removed)
@@ -1903,10 +1905,20 @@ function moverDiseno(d, antes, ahora) {
   for (const [ri, pr] of Object.entries(d.propuestas || {})) { const walk = o => { if (!o || typeof o !== 'object') return; if (typeof o.x === 'number' && typeof o.z === 'number') mover(o, +ri); Object.values(o).forEach(walk); }; walk(pr); }
   return d;
 }
+function pisoParaConstruir(piso, al, quitadas) {
+  const p = al ? alinearPiso(piso, al) : JSON.parse(JSON.stringify(piso, (k, v) => k === '_used' ? undefined : v));
+  for (const k of quitadas || []) { const [ri, wi] = k.split('-').map(Number), w = p.habitaciones[ri]?.paredes?.[wi]; if (w) w._quitada = true; }
+  return p;
+}
+// Quitar (o recuperar) una pared que sobra del escaneo: se reconstruye el piso
+function quitarPared(k, quitar = true) {
+  const q = new Set(design.paredesQuitadas || []); quitar ? q.add(k) : q.delete(k);
+  const d = serialize(); d.paredesQuitadas = [...q]; cerrarPared(); recargarAlineacion(design.alineacion || null, d); changed();
+}
 // Reconstruye el piso con otra alineación de habitaciones (las posiciones de d ya están en esas coordenadas)
 function recargarAlineacion(al, d) {
-  const cur = currentRoom; cloud = alinearNube(flat.data, cloudBase, al);
-  buildFlat(alinearPiso(flat.data, al)); renderRooms(); applyDesign({ ...d, alineacion: al }); setRoom(cur, false); ponerVista(viewMode);
+  const cur = currentRoom; cloud = al ? alinearNube(flat.data, cloudBase, al) : cloudBase;
+  buildFlat(pisoParaConstruir(flat.data, al, d.paredesQuitadas)); renderRooms(); applyDesign({ ...d, alineacion: al }); setRoom(cur, false); ponerVista(viewMode);
 }
 // ---- Colocar habitaciones a mano: en la planta, arrastrando cada habitación (se pega sola a las puertas cercanas) ----
 let colocando = null;
@@ -1976,7 +1988,7 @@ async function loadProject({ name, piso, ply, savedDesign }) {
   await paso('Preparando los modelos 3D…');
   await Promise.race([modelsReady.catch(() => {}), new Promise(r => setTimeout(r, 8000))]);   // si los modelos tardan, sigo sin ellos
   await paso('Construyendo el piso…');
-  buildFlat(al ? alinearPiso(piso, al) : piso); renderRooms();
+  buildFlat(al || d?.paredesQuitadas?.length ? pisoParaConstruir(piso, al, d?.paredesQuitadas) : piso); renderRooms();
   await paso('Colocando los muebles…');
   applyDesign(d); setRoom(-1); historial.pila = []; historial.pos = -1; instantanea();
   if (d?.alineacion && !savedDesign?.alineacion && name !== 'piso_ejemplo') changed();
@@ -2208,7 +2220,8 @@ function irHist(paso) {
   clearTimeout(changed.h); instantanea();   // guarda antes lo último que se hizo
   const k = historial.pos + paso; if (k < 0 || k >= historial.pila.length) return;
   historial.pos = k; historial.aplicando = true; const sid = design?.sync, room = currentRoom;
-  const d = JSON.parse(historial.pila[k]); d.sync = sid; d.actualizado = new Date().toISOString(); applyDesign(d); setRoom(room, false);
+  const d = JSON.parse(historial.pila[k]); d.sync = sid; d.actualizado = new Date().toISOString();
+  if (JSON.stringify(d.alineacion || null) !== JSON.stringify(design?.alineacion || null) || JSON.stringify(d.paredesQuitadas || []) !== JSON.stringify(design?.paredesQuitadas || [])) recargarAlineacion(d.alineacion || null, d); else applyDesign(d); setRoom(room, false);
   historial.aplicando = false; save(); botonesHist(); toast(paso < 0 ? 'Deshecho' : 'Rehecho');
 }
 $('undoBtn').onclick = () => irHist(-1); $('redoBtn').onclick = () => irHist(1);
@@ -2478,7 +2491,7 @@ $('resetBtn').onclick = () => {
 $('colocarBtn').onclick = abrirColocar;
 $('claudeBtn').onclick = () => { if (!flat) return; $('opciones').hidden = true;
   try { window.webkit.messageHandlers.revisarClaude.postMessage(JSON.stringify({ piso: flat.name, enlace: enlacePiso(), muebles: listarExistentes(), paredes: flat.rooms.flatMap(r => r.walls.map(w => ({ key: 'p' + w.key, habitacion: r.name, largo: Math.round(w.f.w * 100), alto: Math.round(w.f.h * 100), transform: new THREE.Matrix4().compose(w.f.p, w.f.q, new THREE.Vector3(1, 1, 1)).elements.map(v => +v.toFixed(5)) }))), sinDetectar: (() => { try { return huecosSinModelar(); } catch { return []; } })() })); toast('Preparando el paquete para Claude…'); } catch { toast('Esto se hace desde la app del iPhone'); } };
-window.__planner = { alineacionAuto: (f) => alineacionAuto(flat.data, f), recargarAlineacion: (al) => recargarAlineacion(al, serialize()), abrirColocar, existentes: listarExistentes, editarExistente, buscarCatalogo, huecosSinModelar, añadirExistente, quitarExtra, geometria, pintarPared: (k, c) => { pintarPared(k, c); changed(); }, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
+window.__planner = { alineacionAuto: (f) => alineacionAuto(flat.data, f), recargarAlineacion: (al) => recargarAlineacion(al, serialize()), abrirColocar, existentes: listarExistentes, editarExistente, buscarCatalogo, huecosSinModelar, añadirExistente, quitarExtra, geometria, pintarPared: (k, c) => { pintarPared(k, c); changed(); }, quitarPared, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
 if (EN_APP) {
   $('webOnly').style.display = 'none'; $('closeBtn').hidden = false; $('claudeBtn').hidden = false;
   $('closeBtn').onclick = () => { save(); try { window.webkit.messageHandlers.cerrar.postMessage(''); } catch {} };
