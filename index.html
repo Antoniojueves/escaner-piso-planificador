@@ -290,7 +290,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe, ventana as ventanaMueble } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-30';
+const PLANNER_VERSION = '2026.11.18-31';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -1710,7 +1710,7 @@ function moverA(it, n) {
 }
 function aplicarRemoto(d) {
   if (!flat || !d) return;
-  if ((d.alineacion && JSON.stringify(d.alineacion) !== JSON.stringify(design?.alineacion || null)) || JSON.stringify(d.paredesQuitadas || []) !== JSON.stringify(design?.paredesQuitadas || []) || JSON.stringify(d.paredesNuevas || []) !== JSON.stringify(design?.paredesNuevas || [])) { if (colocando) cerrarColocar(); recargarAlineacion(d.alineacion || design?.alineacion || null, d); return; }   // habitaciones recolocadas en el otro dispositivo
+  if (Date.now() > estructuraLocalHasta && ((d.alineacion && JSON.stringify(d.alineacion) !== JSON.stringify(design?.alineacion || null)) || JSON.stringify(d.paredesQuitadas || []) !== JSON.stringify(design?.paredesQuitadas || []) || JSON.stringify(d.paredesNuevas || []) !== JSON.stringify(design?.paredesNuevas || []))) { if (colocando) cerrarColocar(); recargarAlineacion(d.alineacion || design?.alineacion || null, d); return; }   // habitaciones recolocadas en el otro dispositivo
   let cambio = false; const sel = selected ? slotIdOf(selected) : null;
   if (d.propuestas && JSON.stringify(d.propuestas) !== JSON.stringify(design?.propuestas || {})) { design.propuestas = d.propuestas; cambio = true; }
   { // muebles añadidos en el otro dispositivo (vienen en el documento de cada mueble; quitarlos = removed)
@@ -1916,12 +1916,16 @@ function pisoParaConstruir(piso, al, quitadas, nuevas) {
   return p;
 }
 // Pared nueva (p. ej. para cerrar bien una habitación que el escáner cortó): de y a en metros, en coordenadas del piso
-function añadirPared(room, de, a) { const d = serialize(); d.paredesNuevas = [...(design.paredesNuevas || []), { room, de, a }]; recargarAlineacion(design.alineacion || null, d); changed(); }
-// Quitar (o recuperar) una pared que sobra del escaneo: se reconstruye el piso
-function quitarPared(k, quitar = true) {
-  const q = new Set(design.paredesQuitadas || []); quitar ? q.add(k) : q.delete(k);
-  const d = serialize(); d.paredesQuitadas = [...q]; cerrarPared(); recargarAlineacion(design.alineacion || null, d); changed();
+function añadirPared(room, de, a) { ajustarParedes({ nuevas: [{ room, de, a }] }); }
+// Cambios de paredes de una vez (una sola reconstrucción) y enviados enseguida, para que un eco del otro dispositivo no los deshaga
+let estructuraLocalHasta = 0;
+function ajustarParedes({ quitar = [], recuperar = [], nuevas = [], borrarNuevas = false } = {}) {
+  const d = serialize(), q = new Set(d.paredesQuitadas || []); quitar.forEach(k => q.add(k)); recuperar.forEach(k => q.delete(k));
+  d.paredesQuitadas = [...q]; d.paredesNuevas = [...(borrarNuevas ? [] : (d.paredesNuevas || [])), ...nuevas];
+  estructuraLocalHasta = Date.now() + 6000; cerrarPared(); recargarAlineacion(design.alineacion || null, d); changed(); clearTimeout(saveTimer); save();
 }
+// Quitar (o recuperar) una pared que sobra del escaneo: se reconstruye el piso
+function quitarPared(k, quitar = true) { ajustarParedes(quitar ? { quitar: [k] } : { recuperar: [k] }); }
 // Reconstruye el piso con otra alineación de habitaciones (las posiciones de d ya están en esas coordenadas)
 function recargarAlineacion(al, d) {
   const cur = currentRoom; cloud = al ? alinearNube(flat.data, cloudBase, al) : cloudBase;
@@ -1950,7 +1954,7 @@ function abrirColocar() {
   $('colOk').onclick = () => {
     const al = {}; for (const r of flat.rooms) { const m = colocando.mov[r.i], b = al0[r.i] || [0, 0, 0]; al[r.i] = [+(b[0] + m[0]).toFixed(3), colocando.alY[r.i], +(b[2] + m[1]).toFixed(3)]; }
     for (const it of items) { const m = colocando.mov[it.room]; if (m) { it.x += m[0]; it.z += m[1]; } }
-    const d = serialize(); cerrarColocar(); recargarAlineacion(al, d); changed(); toast('Habitaciones colocadas');
+    const d = serialize(); cerrarColocar(); estructuraLocalHasta = Date.now() + 6000; recargarAlineacion(al, d); changed(); clearTimeout(saveTimer); save(); toast('Habitaciones colocadas');
   };
   const pantalla = (x, y, z) => { const v = new THREE.Vector3(x, y, z).project(camera), c = renderer.domElement; return [(v.x + 1) / 2 * c.clientWidth, (1 - v.y) / 2 * c.clientHeight]; };
   const cols = ['#c0392b', '#2471a3', '#239b56', '#7d3c98', '#d68910', '#a04000', '#c2185b', '#5d6d7e', '#117864', '#6e2c00'];
@@ -2228,7 +2232,7 @@ function irHist(paso) {
   const k = historial.pos + paso; if (k < 0 || k >= historial.pila.length) return;
   historial.pos = k; historial.aplicando = true; const sid = design?.sync, room = currentRoom;
   const d = JSON.parse(historial.pila[k]); d.sync = sid; d.actualizado = new Date().toISOString();
-  if (JSON.stringify(d.alineacion || null) !== JSON.stringify(design?.alineacion || null) || JSON.stringify(d.paredesQuitadas || []) !== JSON.stringify(design?.paredesQuitadas || []) || JSON.stringify(d.paredesNuevas || []) !== JSON.stringify(design?.paredesNuevas || [])) recargarAlineacion(d.alineacion || null, d); else applyDesign(d); setRoom(room, false);
+  if (JSON.stringify(d.alineacion || null) !== JSON.stringify(design?.alineacion || null) || JSON.stringify(d.paredesQuitadas || []) !== JSON.stringify(design?.paredesQuitadas || []) || JSON.stringify(d.paredesNuevas || []) !== JSON.stringify(design?.paredesNuevas || [])) { estructuraLocalHasta = Date.now() + 6000; recargarAlineacion(d.alineacion || null, d); } else applyDesign(d); setRoom(room, false);
   historial.aplicando = false; save(); botonesHist(); toast(paso < 0 ? 'Deshecho' : 'Rehecho');
 }
 $('undoBtn').onclick = () => irHist(-1); $('redoBtn').onclick = () => irHist(1);
@@ -2498,7 +2502,7 @@ $('resetBtn').onclick = () => {
 $('colocarBtn').onclick = abrirColocar;
 $('claudeBtn').onclick = () => { if (!flat) return; $('opciones').hidden = true;
   try { window.webkit.messageHandlers.revisarClaude.postMessage(JSON.stringify({ piso: flat.name, enlace: enlacePiso(), muebles: listarExistentes(), paredes: flat.rooms.flatMap(r => r.walls.map(w => ({ key: 'p' + w.key, habitacion: r.name, largo: Math.round(w.f.w * 100), alto: Math.round(w.f.h * 100), transform: new THREE.Matrix4().compose(w.f.p, w.f.q, new THREE.Vector3(1, 1, 1)).elements.map(v => +v.toFixed(5)) }))), sinDetectar: (() => { try { return huecosSinModelar(); } catch { return []; } })() })); toast('Preparando el paquete para Claude…'); } catch { toast('Esto se hace desde la app del iPhone'); } };
-window.__planner = { alineacionAuto: (f) => alineacionAuto(flat.data, f), recargarAlineacion: (al) => recargarAlineacion(al, serialize()), abrirColocar, existentes: listarExistentes, editarExistente, buscarCatalogo, huecosSinModelar, añadirExistente, quitarExtra, geometria, pintarPared: (k, c) => { pintarPared(k, c); changed(); }, quitarPared, añadirPared, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
+window.__planner = { alineacionAuto: (f) => alineacionAuto(flat.data, f), recargarAlineacion: (al) => recargarAlineacion(al, serialize()), abrirColocar, existentes: listarExistentes, editarExistente, buscarCatalogo, huecosSinModelar, añadirExistente, quitarExtra, geometria, pintarPared: (k, c) => { pintarPared(k, c); changed(); }, quitarPared, añadirPared, ajustarParedes, exportarAR: () => exportarAR(), sincro: () => sync, design: () => design, loadProject, setRoom, items: () => items, serialize, addItem, tryMove, setElev, penalty, select, slotItems, chooseForSlot, products: () => products };
 if (EN_APP) {
   $('webOnly').style.display = 'none'; $('closeBtn').hidden = false; $('claudeBtn').hidden = false;
   $('closeBtn').onclick = () => { save(); try { window.webkit.messageHandlers.cerrar.postMessage(''); } catch {} };
