@@ -578,6 +578,7 @@ export function construir(p, acabado) {
     case 'radiador': radiador(g, W, D, H, c, o); break;
     case 'ventana': ventana(g, W, D, H, c, o); break;
     case 'cocina': cocina(g, W, D, H, c, o); break;
+    case 'ropero': ropero(g, W, D, H, c, o); break;
     case 'guitarra': guitarra(g, W, D, H, c, o); break;
     default: return null;
   }
@@ -845,6 +846,15 @@ function cocina(g, W, D, H, c, o = {}) {
   if (o.fregadero != null) { const x = -W / 2 + (at(o.fregadero) + .5) * mw; caja(g, .5, .006, .4, inox, x, H + .001, .02); caja(g, .44, .004, .34, M('#7d8286', { madera: false }), x, H + .006, .02);
     caja(g, .03, .32, .03, inox, x, H, -D / 2 + .1); caja(g, .03, .03, .2, inox, x, H + .3, -D / 2 + .2); }
   if (o.placa != null) { const x = -W / 2 + (at(o.placa) + .5) * mw; caja(g, .58, .006, .5, negro, x, H + .001, 0); }
+}
+// Ropero abierto de entrada: balda arriba, barra con abrigos y zapateros abajo
+function ropero(g, W, D, H, c, o = {}) {
+  const b = M(c, { madera: false }), metal = METAL('#9a9ea2'), ropa = ['#3b2f2a', '#7a4a2a', '#2b2f36', '#4a4f57', '#8a8f7a'], zap = ['#2a2a2a', '#d9d4c8', '#6b4a2e', '#1f2a3a'];
+  caja(g, .02, H, D, b, -W / 2 + .01, 0, 0); caja(g, .02, H, D, b, W / 2 - .01, 0, 0); caja(g, W, .025, D, b, 0, H * .8, 0);
+  const rail = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, W - .04, 10), metal); rail.rotation.z = Math.PI / 2; rail.position.set(0, H * .8 - .06, 0); g.add(rail);
+  const n = Math.max(2, Math.round(W / .14)); for (let i = 0; i < n; i++) caja(g, (W - .1) / n * .8, .7 + (i % 3) * .1, D * .55, M(ropa[i % ropa.length], { tela: true }), -W / 2 + .05 + (i + .5) * (W - .1) / n, H * .8 - .76 - (i % 3) * .1, 0);
+  for (const y of [.05, .25]) { caja(g, W - .04, .015, D * .8, b, 0, y, 0); for (let i = 0; i < Math.round(W / .16); i++) caja(g, .1, .08, .26, M(zap[(i + (y > .1 ? 1 : 0)) % zap.length], { madera: false }), -W / 2 + .1 + i * .16, y + .015, 0); }
+  for (let i = 0; i < Math.round(W / .25); i++) caja(g, .18, .1, .2, M(i % 2 ? '#222' : '#555', { tela: true }), -W / 2 + .15 + i * .25, H * .8 + .025, 0);
 }
 export function ventana(g, W, D, H, c, o = {}) {
   const alu = M(o.marco || '#dfe1e2', { madera: false }), lama = M(o.colorPersiana || '#c9ccce', { madera: false }), junta = M('#8d9194', { madera: false });
