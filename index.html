@@ -129,7 +129,7 @@ details.amueblar > summary .t { color:var(--acento); }
 .selTxt { flex:1; min-width:0; } #sel .n { font-size:16.5px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; } #sel .d { margin:2px 0 0; }
 .x { border:0; background:var(--papel); width:30px; height:30px; border-radius:50%; font-size:18px; line-height:1; flex:none; color:var(--suave); }
 #sel .warn { margin:8px 0 0; }
-.acciones { display:grid; grid-template-columns:repeat(6, 1fr); gap:6px; margin-top:10px; }
+.acciones { display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; margin-top:10px; }
 .acciones button { border:1px solid var(--linea); background:#fff; border-radius:12px; padding:6px 2px 5px; display:flex; flex-direction:column; align-items:center; gap:1px; font-size:17px; line-height:1.1; }
 .acciones button small { font-size:10.5px; color:var(--suave); }
 .acciones button.peligro { color:var(--acento); } .acciones button.sel { background:var(--papel); }
@@ -220,7 +220,7 @@ details.foco > summary { box-shadow:0 1px 6px rgba(0,0,0,.06); }
     <div id="sel">
       <div class="selCab"><img id="selFoto" alt=""><div class="selTxt"><div class="g" id="selG"></div><div class="n" id="selName"></div><div class="d" id="selInfo"></div></div><button class="x" id="selX" aria-label="Cerrar">×</button></div>
       <div class="warn" id="selWarn">Se sale de la habitación</div>
-      <div class="acciones"><button id="rotL" title="Girar a la izquierda">⟲<small>90°</small></button><button id="rotR" title="Girar a la derecha">⟳<small>90°</small></button><button id="cambiarBtn">⇄<small>Cambiar</small></button><button id="dup">⧉<small>Duplicar</small></button><button id="del" class="peligro">✕<small>Quitar</small></button><button id="selMasBtn">⋯<small>Medidas</small></button></div>
+      <div class="acciones"><button id="rotL" title="Girar a la izquierda">⟲<small>90°</small></button><button id="rotR" title="Girar a la derecha">⟳<small>90°</small></button><button id="cambiarBtn">⇄<small>Cambiar</small></button><button id="dup">⧉<small>Duplicar</small></button><button id="espejoBtn" title="Darle la vuelta como en un espejo (p. ej. la chaise al otro lado)">⇋<small>Simetría</small></button><button id="del" class="peligro">✕<small>Quitar</small></button><button id="selMasBtn">⋯<small>Medidas</small></button></div>
       <div id="selMas" hidden>
         <div id="exEdit"><div class="g2" style="margin-bottom:6px"><label class="campo">Nombre<input id="exN"></label><label class="campo">Es un/a<select id="exC"></select></label></div><div class="g3"><label class="campo">Ancho cm<input id="exW" type="number"></label><label class="campo">Fondo cm<input id="exD" type="number"></label><label class="campo">Alto cm<input id="exH" type="number"></label></div></div>
         <div class="fila"><span class="nota" style="margin:0">Altura sobre el suelo</span><button class="boton" id="elevDown">−</button><input id="elev" type="number" step="1"><span class="nota" style="margin:0">cm</span><button class="boton" id="elevUp">+</button></div>
@@ -290,7 +290,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe, ventana as ventanaMueble } from './muebles.js?v=2026.11.18-37';
 
-const PLANNER_VERSION = '2026.11.18-37';
+const PLANNER_VERSION = '2026.11.18-38';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -1009,7 +1009,7 @@ function addItem(pid, room, x, z, rot = 0, opts = {}) {
   const r = flat.rooms[room], acabado = opts.acabado || p.acabados?.[0]?.id || null, obj = modelFor(p, acabado);
   let elev = Math.max(0, opts.elev ?? (opts.y != null ? opts.y - r.floorY : (p.elev || 0) / 100));
   if (p.techo && opts.elev == null) elev = Math.max(0, r.height - obj.userData.size.H);
-  const it = { uid: opts.uid || CLI + uidSeq++, pid, acabado, room, x, z, rot, obj, existing: opts.existing || null, replaces: opts.replaces || null, elev, libre: !!opts.libre, fase: opts.fase || undefined };
+  const it = { uid: opts.uid || CLI + uidSeq++, pid, acabado, room, x, z, rot, obj, existing: opts.existing || null, replaces: opts.replaces || null, elev, libre: !!opts.libre, fase: opts.fase || undefined, espejo: !!opts.espejo };
   if (typeof it.uid === 'number') uidSeq = Math.max(uidSeq, it.uid + 1);
   sombraContacto(obj, p);
   obj.userData.item = it; furnGroup.add(obj); items.push(it); if (opts.elev == null) apoyar(it, opts.existing ? false : 'nuevo'); place(it);
@@ -1039,7 +1039,7 @@ function pintarSuelos() {
   el.querySelectorAll('button').forEach(b => b.onclick = () => { ponerSuelo(currentRoom, b.dataset.s); changed(); });
 }
 function place(it) { const pt = products.get(it.pid); if (pt?.techo && !it.libre) it.elev = Math.max(0, flat.rooms[it.room].height - it.obj.userData.size.H);   // lo que cuelga del techo, siempre pegado al techo
-  it.y = flat.rooms[it.room].floorY + it.elev; it.obj.position.set(it.x, it.y, it.z); it.obj.rotation.y = it.rot; }
+  it.y = flat.rooms[it.room].floorY + it.elev; it.obj.position.set(it.x, it.y, it.z); it.obj.rotation.y = it.rot; it.obj.scale.x = it.espejo ? -1 : 1; }
 function removeItem(it) { furnGroup.remove(it.obj); items = items.filter(i => i !== it); if (selected === it) select(null); }
 function rebuild(it) { const vis = it.obj.visible; furnGroup.remove(it.obj); it.obj = modelFor(products.get(it.pid), it.acabado); sombraContacto(it.obj, products.get(it.pid)); it.obj.userData.item = it; it.obj.visible = vis; furnGroup.add(it.obj); place(it); }
 
@@ -1466,7 +1466,8 @@ function rotateSel(deg) {
   refreshWarnings(); changed();
 }
 $('rotL').onclick = () => rotateSel(90); $('rotR').onclick = () => rotateSel(-90); $('rot15').onclick = () => rotateSel(-15);
-$('dup').onclick = () => { if (!selected) return; const s0 = selected, p = products.get(s0.pid); if (p.existing) return toast('Solo se duplican muebles nuevos'); const it = addItem(s0.pid, s0.room, s0.x + .3, s0.z + .3, s0.rot, { elev: s0.elev, acabado: s0.acabado }); const spot = findSpot(it, it.x, it.z); if (spot) { it.x = spot[0]; it.z = spot[1]; place(it); } refreshWarnings(); changed(); openSlot = 'n' + it.uid; renderPanel(); select(it); };
+$('espejoBtn').onclick = () => { if (!selected) return; selected.espejo = !selected.espejo; place(selected); select(selected); changed(); toast(selected.espejo ? 'Simetría aplicada' : 'Simetría quitada'); };
+$('dup').onclick = () => { if (!selected) return; const s0 = selected, p = products.get(s0.pid); if (p.existing) return toast('Solo se duplican muebles nuevos'); const it = addItem(s0.pid, s0.room, s0.x + .3, s0.z + .3, s0.rot, { elev: s0.elev, acabado: s0.acabado, espejo: s0.espejo }); const spot = findSpot(it, it.x, it.z); if (spot) { it.x = spot[0]; it.z = spot[1]; place(it); } refreshWarnings(); changed(); openSlot = 'n' + it.uid; renderPanel(); select(it); };
 $('del').onclick = () => { if (!selected) return; const it = selected; removeItem(it); changed(); renderPanel(); };
 $('elevUp').onclick = () => { if (selected) { setElev(selected, selected.elev * 100 + 5); changed(); } };
 $('elevDown').onclick = () => { if (selected) { setElev(selected, selected.elev * 100 - 5); changed(); } };
@@ -1643,11 +1644,11 @@ function ponerExtras(ex) {
 }
 function serialize() {
   const ex = {};
-  flat.rooms.forEach(r => r.objects.forEach(o => { const p = products.get(o.pid), it = items.find(i => i.existing === o.key); ex[o.key] = { removed: !it, x: it?.x, z: it?.z, rot: it?.rot, elev: it?.elev, libre: it?.libre, name: p.name, cat: p.cat, w: p.w, d: p.d, h: p.h };
+  flat.rooms.forEach(r => r.objects.forEach(o => { const p = products.get(o.pid), it = items.find(i => i.existing === o.key); ex[o.key] = { removed: !it, x: it?.x, z: it?.z, rot: it?.rot, elev: it?.elev, libre: it?.libre, espejo: !!it?.espejo, name: p.name, cat: p.cat, w: p.w, d: p.d, h: p.h };
     for (const k of AJUSTES_EX) ex[o.key][k] = (k === 'estilo' ? (p.estiloPropio ? p.estilo : null) : p[k]) ?? null;
     if (o.extra && design?.extras?.[o.key]) ex[o.key].extra = design.extras[o.key]; }));
   return { version: 2, proyecto: flat.name, actualizado: new Date().toISOString(),
-    nuevos: items.filter(i => !i.existing).map(({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase }) => ({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase: fase || null })),
+    nuevos: items.filter(i => !i.existing).map(({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase, espejo }) => ({ uid, pid, acabado, room, x, z, rot, elev, replaces, libre, fase: fase || null, espejo: !!espejo })),
     existentes: ex, propios: [...products.values()].filter(p => p.custom), paredes: design?.paredes || {}, suelos: design?.suelos || {}, propuestas: design?.propuestas || {}, extras: design?.extras || {}, alineacion: design?.alineacion || null, paredesQuitadas: design?.paredesQuitadas || [], paredesNuevas: design?.paredesNuevas || [], sync: design?.sync || null };
 }
 function applyDesign(d) {
@@ -1658,9 +1659,9 @@ function applyDesign(d) {
     const e = d?.existentes?.[o.key], p = products.get(o.pid);
     if (e) aplicarAjustesEx(p, e);
     if (e?.removed) return;
-    addItem(o.pid, r.i, e?.x ?? o.x, e?.z ?? o.z, e?.rot ?? o.rot, e?.elev != null ? { existing: o.key, elev: e.elev, libre: e.libre } : { existing: o.key, y: o.y });
+    addItem(o.pid, r.i, e?.x ?? o.x, e?.z ?? o.z, e?.rot ?? o.rot, e?.elev != null ? { existing: o.key, elev: e.elev, libre: e.libre, espejo: e.espejo } : { existing: o.key, y: o.y });
   }));
-  (d?.nuevos || []).forEach(n => { if (flat.rooms[n.room] && products.get(n.pid)) addItem(n.pid, n.room, n.x, n.z, n.rot, { uid: n.uid, elev: n.elev, acabado: n.acabado, replaces: n.replaces, libre: n.libre, fase: n.fase }); });
+  (d?.nuevos || []).forEach(n => { if (flat.rooms[n.room] && products.get(n.pid)) addItem(n.pid, n.room, n.x, n.z, n.rot, { uid: n.uid, elev: n.elev, acabado: n.acabado, replaces: n.replaces, libre: n.libre, fase: n.fase, espejo: n.espejo }); });
   design = d || {}; design.extras = extrasD; paredMats.clear(); for (const r of flat.rooms) for (const w of r.walls) w.pieces.forEach(m => m.material = wallMat);
   for (const [k, c] of Object.entries(design.paredes || {})) pintarPared(k, c);
   flat.rooms.forEach(r => { r.floor.material = r.floorMat0; r.floor.userData.baseMat = r.floorMat0; }); for (const [ri, id] of Object.entries(design.suelos || {})) ponerSuelo(+ri, id);
@@ -1704,7 +1705,8 @@ async function iniciarSincro(pisoData) {
   } catch (e) { console.warn('Sincronización', e); estadoSincro('error', e); }
 }
 function moverA(it, n) {
-  const ch = it.x !== n.x || it.z !== n.z || it.rot !== n.rot || (n.elev != null && it.elev !== n.elev) || (n.room != null && it.room !== n.room);
+  const ch = it.x !== n.x || it.z !== n.z || it.rot !== n.rot || (n.elev != null && it.elev !== n.elev) || (n.room != null && it.room !== n.room) || (n.espejo != null && !!n.espejo !== !!it.espejo);
+  if (n.espejo != null) it.espejo = !!n.espejo;
   if (ch) { it.x = n.x; it.z = n.z; it.rot = n.rot; if (n.elev != null) it.elev = n.elev; if (n.room != null) it.room = n.room; it.libre = !!n.libre; place(it); }
   return ch;
 }
@@ -1725,7 +1727,7 @@ function aplicarRemoto(d) {
     const e = d.existentes?.[o.key]; if (!e) return; const it = items.find(i => i.existing === o.key);
     if (aplicarAjustesEx(products.get(o.pid), e)) { if (it) rebuild(it); cambio = true; }
     if (e.removed) { if (it) { removeItem(it); cambio = true; } return; }
-    if (!it) { addItem(o.pid, r.i, e.x ?? o.x, e.z ?? o.z, e.rot ?? o.rot, { existing: o.key, elev: e.elev ?? 0, libre: e.libre }); cambio = true; return; }
+    if (!it) { addItem(o.pid, r.i, e.x ?? o.x, e.z ?? o.z, e.rot ?? o.rot, { existing: o.key, elev: e.elev ?? 0, libre: e.libre, espejo: e.espejo }); cambio = true; return; }
     if (drag?.it !== it && e.x != null && moverA(it, e)) cambio = true;
   }));
   const vistos = new Set();
@@ -1986,7 +1988,7 @@ function cerrarColocar() { colocando = null; $('colocar')?.remove(); $('colocarB
 let cloudBase = null;
 async function loadProject({ name, piso, ply, savedDesign }) {
   $('loadMsg').textContent = 'Construyendo el modelo…'; $('carga').style.display = 'grid'; $('hoja').classList.remove('abierta');
-  sync?.cerrar(); sync = null; verPresencia([]); clearTimeout(saveTimer); clearTimeout(changed.h);   // que no se guarde a medias el piso anterior
+  select(null); sync?.cerrar(); sync = null; verPresencia([]); clearTimeout(saveTimer); clearTimeout(changed.h);   // que no se guarde a medias el piso anterior
   const paso = async t => { $('loadMsg').textContent = t; await new Promise(r => setTimeout(r, 30)); };
   try {
   await paso('Leyendo la nube de puntos…');
