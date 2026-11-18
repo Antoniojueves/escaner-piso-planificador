@@ -289,7 +289,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { texturaVeta, texturaParquet, SUELOS } from './texturas.js';
 import { construir as construirMueble, setVeta, encenderLamparas, colorDe, estiloDe } from './muebles.js';
 
-const PLANNER_VERSION = '2026.11.18-16';
+const PLANNER_VERSION = '2026.11.18-17';
 
 // ================= Catálogo IKEA (precios de ikea.com/es consultados el 17/11/2026) =================
 const IK = 'https://www.ikea.com/es/es/';
@@ -2251,7 +2251,7 @@ function huecosSinModelar() {
       if (g.length < 25) continue;
       let a0 = Infinity, a1 = -Infinity, b1 = -Infinity, c0 = Infinity, c1 = -Infinity, R = 0, G = 0, B = 0, N = 0;
       for (const k of g) { const [a, b, c] = k.split(',').map(Number), q = celdas.get(k); a0 = Math.min(a0, a); a1 = Math.max(a1, a + 1); b1 = Math.max(b1, b + 1); c0 = Math.min(c0, c); c1 = Math.max(c1, c + 1); R += q.r; G += q.g; B += q.b; N += q.n; }
-      const w = (a1 - a0) * V, d = (c1 - c0) * V, h = b1 * V + .08; if (Math.max(w, d) < .2 || h < .25 || w * d > 6) continue;
+      const w = (a1 - a0) * V, d = (c1 - c0) * V, h = b1 * V + .08; if (Math.max(w, d) < .2 || Math.min(w, d) < .1 || h < .25 || w * d > 6) continue;   // descarta marcos y bordes de puertas
       const u = (a0 + a1) / 2 * V, v = (c0 + c1) / 2 * V, x = u * ca - v * sa, z = u * sa + v * ca, rot = -ang;
       grupos.push({ x, z, w, d, h, rot, color: colHex([R / N, G / N, B / N]), n: g.length });
     }
